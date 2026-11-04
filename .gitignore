@@ -3,3 +3,4 @@ load/
 *.sql
 !supabase/*.sql
 .DS_Store
+next/testdata.js
