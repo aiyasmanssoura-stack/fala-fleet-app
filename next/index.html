@@ -2874,6 +2874,14 @@ let drawLeads = ()=>{};
     (b.dataset.f === 'hedit' ? openHistEdit : openHistRemove)(b.dataset.kind, b.dataset.id, b.dataset.plate);
   });
 
+  /* Back to the category list, in the same place you left it. */
+  document.addEventListener('click', e=>{
+    const c = e.target.closest('#pgFleet [data-f="card"]');
+    if(c && !el('fList').hidden) window.__listY = scrollY;
+    const b = e.target.closest('#pgFleet [data-back]');
+    if(b){ const y = window.__listY || 0; setTimeout(()=>scrollTo({top:y}), 90); }
+  });
+
   function templates(v){
     return `
     ${servicePanel(v)}
@@ -2900,6 +2908,7 @@ let drawLeads = ()=>{};
     const code = v.code && !['?','NA','N/A'].includes(v.code.toUpperCase());
 
     el('fCard').innerHTML = `
+    <p style="margin:0 0 10px"><a class="btn" data-f="list" data-back="1" data-cls="${esc(v.cls)}">&larr; Back to ${esc(v.cls)}</a></p>
     <div class="crumb"><a data-f="home">Fleet</a><span>&rsaquo;</span>
       <a data-f="list" data-cls="${esc(v.cls)}">${esc(v.cls)}</a><span>›</span>
       <b>${esc(v.plate)}</b></div>

@@ -43,7 +43,7 @@ assert a in js and "${servicePanel(v)}\n    ${accidentPanel(v)}" in js
 EDITJS = open(os.path.join(here, "editdriver.js"), encoding="utf-8").read()
 EDITJS += open(os.path.join(here, "editsite.js"), encoding="utf-8").read()
 EDITJS += open(os.path.join(here, "editpaper.js"), encoding="utf-8").read()
-EDITJS += open(os.path.join(here, "edithist.js"), encoding="utf-8").read()
+EDITJS += open(os.path.join(here, "edithist.js"), encoding="utf-8").read() + open(os.path.join(here, "back.js"), encoding="utf-8").read()
 js = js.replace(a, DIESEL + EDITJS + a, 1).replace("${servicePanel(v)}\n    ${accidentPanel(v)}", "${servicePanel(v)}\n    ${dieselPanel(v)}\n    ${accidentPanel(v)}", 1)
 o1 = '<span class="note">newest first &middot; the one on it today is at the top</span></div>'
 assert o1 in js
@@ -89,6 +89,9 @@ head = head.replace(o13, o13 + '\n    <button role="tab" id="tabHome" aria-selec
 o14 = '<section id="pgFleet" role="tabpanel">'
 assert head.count(o14) == 1
 head = head.replace(o14, '<section id="pgHome" role="tabpanel" hidden><div id="homeBody"></div></section>\n\n' + o14, 1)
+o15 = "    el('fCard').innerHTML = `\n    <div class=\"crumb\"><a data-f=\"home\">Fleet</a><span>&rsaquo;</span>\n      <a data-f=\"list\" data-cls=\"${esc(v.cls)}\">"
+assert js.count(o15) == 1
+js = js.replace(o15, "    el('fCard').innerHTML = `\n    <p style=\"margin:0 0 10px\"><a class=\"btn\" data-f=\"list\" data-back=\"1\" data-cls=\"${esc(v.cls)}\">&larr; Back to ${esc(v.cls)}</a></p>\n    <div class=\"crumb\"><a data-f=\"home\">Fleet</a><span>&rsaquo;</span>\n      <a data-f=\"list\" data-cls=\"${esc(v.cls)}\">", 1)
 # log notes are Aiyas's own; they are not shown on the vehicle cards (4 Nov)
 a = "${v.log && v.log.length ? `<div class=\"panel\">"
 assert a in js
