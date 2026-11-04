@@ -164,6 +164,15 @@
       (dl[plate] = dl[plate] || []).push({ n: name, f: b.from_date ? iso(b.from_date) : null, t: b.to_date ? iso(b.to_date) : null, note: s(b.note) });
     });
     Object.keys(dl).forEach((plate) => { vehicles[plate].drvlog = dl[plate].sort((a, b) => { const x = a.t || a.f || '', y = b.t || b.f || ''; return x < y ? 1 : x > y ? -1 : 0; }); });
+    // sites before the present one (saved by Change site), newest first
+    const sl = {};
+    (db.board_history || []).forEach((b) => {
+      if (!b.site_id) return;
+      const plate = byId[b.vehicle_id] ? plateOf(byId[b.vehicle_id]) : ''; if (!plate || !vehicles[plate]) return;
+      const nm = (db.sites.find((x) => x.id === b.site_id) || {}).name; if (!nm) return;
+      (sl[plate] = sl[plate] || []).push({ n: nm, f: b.from_date ? iso(b.from_date) : null, t: b.to_date ? iso(b.to_date) : null, note: s(b.note) });
+    });
+    Object.keys(sl).forEach((plate) => { vehicles[plate].sitelog = sl[plate].sort((a, b) => { const x = a.t || a.f || '', y = b.t || b.f || ''; return x < y ? 1 : x > y ? -1 : 0; }); });
     const recordSpan = attachRecords(vehicles, db);
     return { today, classes: CLASSES, cats, sites, persons, vehicles, order, outfleet: out, fleetTally: tally, recordSpan };
   }
