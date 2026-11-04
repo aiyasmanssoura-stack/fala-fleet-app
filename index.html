@@ -1,0 +1,284 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>FALA Fleet App</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{--navy:#16305C;--accent:#B8860B;--bar:#456FB2;--bg:#F4F6FA;--surface:#fff;--ink:#1B2433;--ink2:#5B6676;--line:#DDE3EC;--crit:#B3261E;--warn:#B8860B;--good:#2E7D4F}
+@media (prefers-color-scheme:dark){:root{--bg:#0F1624;--surface:#172033;--ink:#E7ECF4;--ink2:#9FB0CA;--line:#2A3650;--crit:#F28B82;--warn:#E3B341;--good:#7BD39B}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.45 "IBM Plex Sans",system-ui,sans-serif}
+[hidden]{display:none !important}
+.band{background:var(--navy);color:#fff;padding:12px 16px;display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+.band h1{font:700 18px Archivo,sans-serif;margin:0;letter-spacing:.3px}
+.band .who{margin-left:auto;font-size:12px;color:#9FB0CA}
+.band button{background:transparent;border:1px solid #9FB0CA;color:#fff;border-radius:6px;padding:4px 10px;cursor:pointer}
+nav{display:flex;gap:4px;padding:8px 16px 0;flex-wrap:wrap;background:var(--surface);border-bottom:1px solid var(--line)}
+nav button{border:0;background:none;padding:10px 14px;font:600 13px Archivo,sans-serif;color:var(--ink2);cursor:pointer;border-bottom:3px solid transparent}
+nav button.on{color:var(--navy);border-color:var(--accent)}
+@media (prefers-color-scheme:dark){nav button.on{color:#fff}}
+main{padding:16px;max-width:1300px;margin:0 auto}
+.tools{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+input,select,textarea{font:inherit;color:var(--ink);background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:6px 8px}
+input[type=search]{min-width:220px}
+table{width:100%;border-collapse:collapse;background:var(--surface);border:1px solid var(--line)}
+th{background:var(--navy);color:#fff;font:600 10.5px Archivo,sans-serif;text-transform:uppercase;letter-spacing:.5px;text-align:left;padding:7px 10px;position:sticky;top:0}
+td{padding:5px 10px;border-top:1px solid var(--line);vertical-align:middle}
+tr.click{cursor:pointer}tr.click:hover{background:rgba(69,111,178,.1)}
+td select,td input{width:100%;min-width:110px;padding:3px 5px}
+.wrap{overflow:auto;max-height:72vh;border-radius:6px}
+h2{font:700 16px Archivo,sans-serif;color:var(--navy);margin:20px 0 8px;border-bottom:2px solid var(--navy);padding-bottom:4px}
+@media (prefers-color-scheme:dark){h2{color:#fff;border-color:#456FB2}}
+.tag{display:inline-block;padding:1px 8px;border-radius:10px;font-size:11px;font-weight:600;border:1px solid var(--line)}
+.tag.crit{color:var(--crit);border-color:var(--crit)}.tag.warn{color:var(--warn);border-color:var(--warn)}.tag.good{color:var(--good);border-color:var(--good)}
+.login{max-width:340px;margin:12vh auto;background:var(--surface);padding:24px;border:1px solid var(--line);border-radius:10px}
+.login h1{font:700 20px Archivo;color:var(--navy);margin:0 0 14px}
+.login input{width:100%;margin-bottom:10px}
+.login button{width:100%;padding:9px;border:0;border-radius:6px;background:var(--navy);color:#fff;font-weight:600;cursor:pointer}
+.login a{color:var(--bar);cursor:pointer;font-size:12px}
+.msg{color:var(--crit);font-size:12px;min-height:16px}
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.45);display:flex;align-items:flex-start;justify-content:center;padding:4vh 12px;overflow:auto}
+.card{background:var(--surface);border-radius:10px;padding:18px;max-width:640px;width:100%}
+.card h3{margin:0 0 10px;font:700 17px Archivo;color:var(--navy)}
+@media (prefers-color-scheme:dark){.card h3{color:#fff}}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.grid label{display:flex;flex-direction:column;font-size:11px;color:var(--ink2);gap:3px}
+.grid .full{grid-column:1/-1}
+.row{display:flex;gap:8px;justify-content:flex-end;margin-top:14px}
+.btn{padding:7px 14px;border-radius:6px;border:1px solid var(--line);background:var(--surface);color:var(--ink);cursor:pointer}
+.btn.pri{background:var(--navy);color:#fff;border-color:var(--navy)}
+.toast{position:fixed;bottom:16px;left:50%;transform:translateX(-50%);background:var(--navy);color:#fff;padding:8px 16px;border-radius:20px;font-size:13px}
+.toast.err{background:var(--crit)}
+.sub{color:var(--ink2);font-size:12px;margin:0 0 10px}
+@media (max-width:640px){.grid{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div id="login" class="login" hidden>
+  <h1>FALA Fleet App</h1>
+  <input id="em" type="email" placeholder="Email" autocomplete="username">
+  <input id="pw" type="password" placeholder="Password (min 8 characters)" autocomplete="current-password">
+  <div class="msg" id="lmsg"></div>
+  <button id="lbtn">Sign in</button>
+  <p><a id="swap">First time? Create account</a></p>
+</div>
+
+<div id="wait" class="login" hidden>
+  <h1>Almost there</h1>
+  <p>You are signed in, but the administrator has not given this account access yet.</p>
+  <button id="wout">Sign out</button>
+</div>
+
+<div id="app" hidden>
+  <div class="band"><h1>FALA FLEET APP</h1><span class="who" id="who"></span><button id="out">Sign out</button></div>
+  <nav id="tabs"></nav>
+  <main id="view"></main>
+</div>
+<div id="modal" class="modal" hidden></div>
+<div id="toast" class="toast" hidden></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script>
+const SB_URL = "https://lmtwqdoldsxalwshltne.supabase.co";
+const SB_KEY = "sb_publishable_x-C3LN42cBLjH4hHYvNs1Q_ktcSjZYe"; // public key; data is protected by database rules
+const sb = supabase.createClient(SB_URL, SB_KEY);
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const TODAY = new Date(); TODAY.setHours(0,0,0,0);
+let D = {}, me = null, tab = "fleet", signup = false;
+const canEdit = () => me && (me.role === "admin" || me.role === "editor");
+
+function toast(t, err){ const e=$("toast"); e.textContent=t; e.className="toast"+(err?" err":""); e.hidden=false; clearTimeout(toast.t); toast.t=setTimeout(()=>e.hidden=true, err?5000:2000); }
+
+/* ---------- login ---------- */
+$("swap").onclick = () => { signup=!signup; $("lbtn").textContent = signup?"Create account":"Sign in"; $("swap").textContent = signup?"Have an account? Sign in":"First time? Create account"; $("lmsg").textContent=""; };
+$("lbtn").onclick = async () => {
+  const email=$("em").value.trim(), password=$("pw").value; $("lmsg").textContent="";
+  const r = signup ? await sb.auth.signUp({email,password}) : await sb.auth.signInWithPassword({email,password});
+  if (r.error) { $("lmsg").textContent = r.error.message; return; }
+  if (signup && !r.data.session) { $("lmsg").style.color="var(--good)"; $("lmsg").textContent="Check your email to confirm, then sign in."; return; }
+  start();
+};
+$("out").onclick = $("wout").onclick = async () => { await sb.auth.signOut(); location.reload(); };
+
+async function start(){
+  const { data:{ session } } = await sb.auth.getSession();
+  if (!session) { $("login").hidden=false; $("app").hidden=true; $("wait").hidden=true; return; }
+  const u = await sb.from("app_users").select("*").eq("id", session.user.id).maybeSingle();
+  $("login").hidden = true;
+  if (!u.data) { $("wait").hidden=false; return; }
+  me = u.data; $("wait").hidden=true; $("app").hidden=false;
+  $("who").textContent = me.email + " · " + me.role;
+  await loadAll(); drawTabs(); draw();
+}
+
+/* ---------- data ---------- */
+async function all(table, sel){ let out=[], from=0; for(;;){ const {data,error}=await sb.from(table).select(sel).range(from,from+999); if(error) throw error; out=out.concat(data); if(data.length<1000) break; from+=1000; } return out; }
+async function loadAll(){
+  try {
+    const [vehicles, people, sites, types, papers] = await Promise.all([
+      all("vehicles","*"), all("people","*"), all("sites","*"), all("paper_types","*"), all("papers","*")]);
+    D = { vehicles, people, sites, types, papers: papers.filter(p=>p.is_current) };
+    D.v = Object.fromEntries(vehicles.map(x=>[x.id,x])); D.p = Object.fromEntries(people.map(x=>[x.id,x]));
+    D.s = Object.fromEntries(sites.map(x=>[x.id,x])); D.t = Object.fromEntries(types.map(x=>[x.id,x]));
+  } catch(e){ toast("Could not load data: "+e.message, true); }
+}
+const vname = v => v ? (v.number || `(no number) ${v.vehicle_type||""}`) : "";
+const pname = id => id ? (D.p[id]?.passport_name || "") : "";
+const sname = id => id ? (D.s[id]?.name || "") : "";
+async function save(table, id, patch){
+  patch.updated_by = me.id; patch.updated_at = new Date().toISOString();
+  const { error } = await sb.from(table).update(patch).eq("id", id);
+  if (error) { toast(error.message, true); return false; }
+  toast("Saved"); return true;
+}
+
+/* ---------- tabs ---------- */
+const TABS = [["fleet","Fleet"],["board","Board"],["renewals","Renewals"],["people","People"]];
+function drawTabs(){ $("tabs").innerHTML = TABS.map(([k,l])=>`<button data-k="${k}" class="${k===tab?"on":""}">${l}</button>`).join(""); $("tabs").onclick = e => { const k=e.target.dataset.k; if(k){tab=k; drawTabs(); draw();} }; }
+function draw(){ $("view").innerHTML=""; ({fleet:drawFleet, board:drawBoard, renewals:drawRenewals, people:drawPeople})[tab](); }
+
+/* ---------- fleet ---------- */
+let F = { q:"", own:"Own", site:"" };
+function opts(list, sel, blank="—"){ return `<option value="">${blank}</option>` + list.map(([v,l])=>`<option value="${v}" ${String(v)===String(sel??"")?"selected":""}>${esc(l)}</option>`).join(""); }
+const siteOpts = sel => opts(D.sites.map(s=>[s.id,s.name]), sel);
+const peopleList = () => D.people.filter(p=>p.status!=="Left").sort((a,b)=>a.passport_name.localeCompare(b.passport_name)).map(p=>[p.id,p.passport_name]);
+const truckList = () => D.vehicles.filter(v=>v.ownership==="Own" && !/trailer/i.test(v.class||"")).sort((a,b)=>(a.number||"").localeCompare(b.number||"")).map(v=>[v.id,vname(v)]);
+
+function drawFleet(){
+  $("view").innerHTML = `<div class="tools">
+    <input type="search" id="fq" placeholder="Search plate, type, driver…" value="${esc(F.q)}">
+    <select id="fo"><option value="Own">Own fleet</option><option value="Hired in">Hired in</option><option value="">All</option></select>
+    <select id="fs">${siteOpts(F.site).replace("—","All sites")}</select>
+    <span class="sub" id="fc" style="align-self:center"></span></div>
+    <div class="wrap"><table><thead><tr><th>Number</th><th>Class</th><th>Type</th><th>Make / model</th><th>Site</th><th>Driver</th><th>Fleet status</th></tr></thead><tbody id="fb"></tbody></table></div>`;
+  $("fo").value = F.own;
+  const run = () => {
+    F.q=$("fq").value; F.own=$("fo").value; F.site=$("fs").value;
+    const q=F.q.toLowerCase();
+    const rows = D.vehicles.filter(v => (!F.own||v.ownership===F.own) && (!F.site||String(v.site_id)===F.site) &&
+      (!q || [v.number,v.class,v.vehicle_type,v.make_model,v.code,pname(v.driver_id)].join(" ").toLowerCase().includes(q)));
+    $("fc").textContent = rows.length+" shown";
+    $("fb").innerHTML = rows.map(v=>`<tr class="click" data-id="${v.id}"><td><b>${esc(vname(v))}</b></td><td>${esc(v.class)}</td><td>${esc(v.vehicle_type)}</td><td>${esc(v.make_model)}</td><td>${esc(sname(v.site_id))}</td><td>${esc(pname(v.driver_id))}</td><td>${esc(v.fleet_status)}</td></tr>`).join("");
+  };
+  ["fq","fo","fs"].forEach(i=>$(i).oninput=run); run();
+  $("fb").onclick = e => { const tr=e.target.closest("tr"); if(tr) vehicleCard(+tr.dataset.id); };
+}
+
+function vehicleCard(id){
+  const v = D.v[id], ro = canEdit() ? "" : "disabled";
+  const papers = D.papers.filter(p=>p.vehicle_id===id).map(p=>({...p,t:D.t[p.paper_type_id]})).sort((a,b)=>a.t.sort-b.t.sort);
+  $("modal").innerHTML = `<div class="card"><h3>${esc(vname(v))} <span class="tag">${esc(v.ownership)}</span></h3>
+    <p class="sub">${esc([v.class,v.vehicle_type,v.make_model,v.year].filter(Boolean).join(" · "))}</p>
+    <div class="grid">
+      <label>Site<select id="f_site" ${ro}>${siteOpts(v.site_id)}</select></label>
+      <label>On site since<input type="date" id="f_ss" value="${v.site_since||""}" ${ro}></label>
+      <label>Driver<select id="f_dr" ${ro}>${opts(peopleList(), v.driver_id)}</select></label>
+      <label>Driver since<input type="date" id="f_ds" value="${v.driver_since||""}" ${ro}></label>
+      <label>Second driver<select id="f_d2" ${ro}>${opts(peopleList(), v.second_driver_id)}</select></label>
+      <label>Pulled by (trailers)<select id="f_pb" ${ro}>${opts(truckList(), v.pulled_by_id)}</select></label>
+      <label>Fleet status<select id="f_fs" ${ro}>${["In fleet","Rented to Fala Road","Out of fleet"].map(x=>`<option ${x===v.fleet_status?"selected":""}>${x}</option>`).join("")}</select></label>
+      <label>Condition<select id="f_co" ${ro}>${opts(["OK","Watch","Needs repair","Out of service","In garage"].map(x=>[x,x]), v.condition)}</select></label>
+      <label class="full">Note<textarea id="f_no" rows="2" ${ro}>${esc(v.note||"")}</textarea></label>
+    </div>
+    <h2>Papers</h2>
+    <table><tbody>${papers.map(p=>`<tr><td>${esc(p.t.name)}</td><td>${paperCell(p)}</td></tr>`).join("")}</tbody></table>
+    <div class="row"><button class="btn" id="f_x">Close</button>${canEdit()?'<button class="btn pri" id="f_ok">Save</button>':""}</div></div>`;
+  $("modal").hidden = false;
+  $("f_x").onclick = () => $("modal").hidden = true;
+  if ($("f_ok")) $("f_ok").onclick = async () => {
+    const n = x => $(x).value || null;
+    const patch = { site_id:n("f_site")&&+n("f_site"), site_since:n("f_ss"), driver_id:n("f_dr")&&+n("f_dr"), driver_since:n("f_ds"),
+      second_driver_id:n("f_d2")&&+n("f_d2"), pulled_by_id:n("f_pb")&&+n("f_pb"), fleet_status:$("f_fs").value, condition:n("f_co"), note:n("f_no") };
+    if (await save("vehicles", id, patch)) { Object.assign(v, patch); $("modal").hidden=true; draw(); }
+  };
+}
+
+/* ---------- papers ---------- */
+function paperState(p){
+  const t=D.t[p.paper_type_id];
+  if (p.state==="Date" && p.expiry){
+    const days = Math.round((new Date(p.expiry)-TODAY)/864e5);
+    if (days<0) return {c:"crit",l:`Expired ${-days}d ago`,days};
+    if (days<=t.warn_days) return {c:"warn",l:`${days}d left`,days};
+    return {c:"good",l:`${days}d left`,days};
+  }
+  return {c:"",l:p.state==="Note"?(p.note||"Note"):p.state,days:null};
+}
+function paperCell(p){ const s=paperState(p); return `${p.expiry?esc(p.expiry)+" ":""}<span class="tag ${s.c}">${esc(s.l)}</span>`; }
+
+function drawRenewals(){
+  let days=60;
+  $("view").innerHTML = `<div class="tools"><select id="rd"><option value="30">Next 30 days</option><option value="60" selected>Next 60 days</option><option value="120">Next 120 days</option></select>
+    <select id="rk"><option value="">Vehicles & people</option><option value="v">Vehicles</option><option value="p">People</option></select></div>
+    <p class="sub">Expired and soon-to-expire papers, most urgent first. Renewing keeps the old paper in history.</p>
+    <div class="wrap"><table><thead><tr><th>Paper</th><th>For</th><th>Expiry</th><th>Status</th><th></th></tr></thead><tbody id="rb"></tbody></table></div>`;
+  const run = () => {
+    days=+$("rd").value; const k=$("rk").value;
+    const rows = D.papers.filter(p=>p.state==="Date"&&p.expiry&&D.t[p.paper_type_id].has_expiry&&paperState(p).days<=days&&(!k||(k==="v"?p.vehicle_id:p.person_id)))
+      .filter(p=>p.vehicle_id? D.v[p.vehicle_id].fleet_status==="In fleet" : D.p[p.person_id].status!=="Left")
+      .sort((a,b)=>a.expiry.localeCompare(b.expiry));
+    $("rb").innerHTML = rows.map(p=>{ const s=paperState(p);
+      return `<tr><td>${esc(D.t[p.paper_type_id].name)}</td><td><b>${esc(p.vehicle_id?vname(D.v[p.vehicle_id]):pname(p.person_id))}</b></td><td>${esc(p.expiry)}</td><td><span class="tag ${s.c}">${esc(s.l)}</span></td>
+      <td>${canEdit()?`<input type="date" data-id="${p.id}" style="width:150px"> <button class="btn" data-r="${p.id}">Renew</button>`:""}</td></tr>`; }).join("") || `<tr><td colspan=5>Nothing due.</td></tr>`;
+  };
+  $("rd").oninput=$("rk").oninput=run; run();
+  $("rb").onclick = async e => {
+    const id=e.target.dataset.r; if(!id) return;
+    const d=$("rb").querySelector(`input[data-id="${id}"]`).value; if(!d) return toast("Pick the new expiry date first", true);
+    const old=D.papers.find(p=>p.id==id);
+    const ins = await sb.from("papers").insert({paper_type_id:old.paper_type_id,vehicle_id:old.vehicle_id,person_id:old.person_id,state:"Date",expiry:d,ref_no:old.ref_no,updated_by:me.id}).select().single();
+    if (ins.error) return toast(ins.error.message, true);
+    if (!(await save("papers", old.id, {is_current:false}))) return;
+    D.papers = D.papers.filter(p=>p.id!=old.id).concat(ins.data); run();
+  };
+}
+
+/* ---------- board ---------- */
+function drawBoard(){
+  const ro = canEdit() ? "" : "disabled";
+  $("view").innerHTML = `<div class="tools"><input type="search" id="bq" placeholder="Search…"></div><p class="sub">Where each vehicle is and who drives it. Changes save as you pick.</p><div id="bd"></div>`;
+  const run = () => {
+    const q=$("bq").value.toLowerCase();
+    $("bd").innerHTML = D.sites.map(s=>{
+      const rows = D.vehicles.filter(v=>v.ownership==="Own"&&v.site_id===s.id&&v.fleet_status!=="Out of fleet"&&(!q||[v.number,v.vehicle_type,pname(v.driver_id)].join(" ").toLowerCase().includes(q)));
+      if(!rows.length) return "";
+      return `<h2>${esc(s.name)} · ${rows.length}</h2><div class="wrap"><table><thead><tr><th>Number</th><th>Type</th><th>Driver</th><th>Since</th><th>Second driver</th><th>Site</th></tr></thead><tbody>`+
+        rows.map(v=>`<tr data-id="${v.id}"><td><b>${esc(vname(v))}</b></td><td>${esc(v.vehicle_type)}</td>
+          <td><select data-f="driver_id" ${ro}>${opts(peopleList(),v.driver_id)}</select></td>
+          <td><input type="date" data-f="driver_since" value="${v.driver_since||""}" ${ro}></td>
+          <td><select data-f="second_driver_id" ${ro}>${opts(peopleList(),v.second_driver_id)}</select></td>
+          <td><select data-f="site_id" ${ro}>${siteOpts(v.site_id)}</select></td></tr>`).join("")+`</tbody></table></div>`;
+    }).join("");
+  };
+  $("bq").oninput=run; run();
+  $("bd").onchange = async e => {
+    const tr=e.target.closest("tr"), f=e.target.dataset.f; if(!tr||!f) return;
+    const v=D.v[tr.dataset.id]; let val=e.target.value||null; if(f.endsWith("_id")&&val) val=+val;
+    if (await save("vehicles", v.id, {[f]:val})) { v[f]=val; if(f==="site_id") run(); }
+  };
+}
+
+/* ---------- people ---------- */
+function drawPeople(){
+  $("view").innerHTML = `<div class="tools"><input type="search" id="pq" placeholder="Search name or number…"><select id="ps"><option value="">All statuses</option><option>Active</option><option>On Leave</option><option>Left</option><option>Suspended</option></select><span class="sub" id="pc" style="align-self:center"></span></div>
+    <div class="wrap"><table><thead><tr><th>Name</th><th>Employee no</th><th>Role</th><th>Section</th><th>Status</th><th>Licence expiry</th></tr></thead><tbody id="pb"></tbody></table></div>`;
+  const lic = Object.fromEntries(D.papers.filter(p=>p.person_id&&D.t[p.paper_type_id].name==="Driver Licence").map(p=>[p.person_id,p]));
+  const run = () => {
+    const q=$("pq").value.toLowerCase(), st=$("ps").value;
+    const rows = D.people.filter(p=>(!st||p.status===st)&&(!q||[p.passport_name,p.employee_no,p.code].join(" ").toLowerCase().includes(q))).sort((a,b)=>a.passport_name.localeCompare(b.passport_name));
+    $("pc").textContent = rows.length+" shown";
+    $("pb").innerHTML = rows.map(p=>`<tr><td><b>${esc(p.passport_name)}</b></td><td>${esc(p.employee_no)}</td><td>${esc(p.role)}</td><td>${esc(p.section)}</td><td>${esc(p.status)}</td><td>${lic[p.id]?paperCell(lic[p.id]):""}</td></tr>`).join("");
+  };
+  $("pq").oninput=$("ps").oninput=run; run();
+}
+
+$("modal").addEventListener("click", e => { if (e.target.id==="modal") $("modal").hidden=true; });
+sb.auth.onAuthStateChange(()=>{});
+start();
+</script>
+</body>
+</html>
