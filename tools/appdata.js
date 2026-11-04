@@ -201,6 +201,14 @@
       (svc[plate] = svc[plate] || []).push({ d, j: s(j.job), t: s(j.service_type), by: s(j.done_by), r: r === null || r === undefined ? null : Number(r), u: s(j.unit) });
     });
     Object.keys(svc).forEach((plate) => { vehicles[plate].svc = svc[plate].sort((a, b) => (a.d < b.d ? 1 : a.d > b.d ? -1 : 0)); });
+    // diesel from the monthly project reports, newest month first
+    const prjName = {}; (db.projects || []).forEach((x) => { prjName[x.id] = x.name; });
+    const dz = {};
+    (db.diesel_lines || []).slice().sort((a, b) => a.id - b.id).forEach((x) => {
+      const plate = plateById[x.vehicle_id]; if (!plate || !vehicles[plate]) return;
+      (dz[plate] = dz[plate] || []).push({ f: iso(x.from_date), t: iso(x.to_date), p: prjName[x.project_id] || '', l: x.litres == null ? null : Number(x.litres), h: x.hours == null ? null : Number(x.hours) });
+    });
+    Object.keys(dz).forEach((plate) => { vehicles[plate].diesel = dz[plate].sort((a, b) => (a.f < b.f ? 1 : a.f > b.f ? -1 : 0)); });
     return { tyreFrom: tFrom, tyreTo: tTo, svcFrom: sFrom, svcTo: sTo };
   }
 

@@ -2518,9 +2518,32 @@ let drawLeads = ()=>{};
     </div>`;
   }
 
+
+  function dieselPanel(v){
+    const rows = v.diesel || [];
+    if(!rows.length) return '';
+    const mon = (d)=>new Date(d+'T00:00:00').toLocaleDateString('en-GB',{month:'long',year:'numeric'});
+    const lit = (n)=>n===null||n===undefined?'<span class="dash">—</span>':NUM.format(Math.round(n))+'<span class="sm"> L</span>';
+    const total = rows.reduce((a,r)=>a+(r.l||0),0);
+    return `<div class="panel">
+      <div class="ph"><h3>Diesel</h3>
+        <span class="pill p-ok">${new Set(rows.map(r=>r.f)).size} month${new Set(rows.map(r=>r.f)).size>1?'s':''} on record</span>
+        <span class="note">${NUM.format(Math.round(total))} L in total</span></div>
+      <div class="scroll"><table>
+        <thead><tr><th>Month</th><th>Project</th><th class="n">Litres</th><th class="n">Hours</th><th class="n">L / hour</th></tr></thead>
+        <tbody>${rows.map(r=>`<tr>
+          <td class="id"><b>${esc(mon(r.f))}</b></td>
+          <td class="sm">${r.p?esc(r.p):'<span class="dash">—</span>'}</td>
+          <td class="n">${lit(r.l)}</td>
+          <td class="n">${r.h?NUM.format(r.h)+'<span class="sm"> h</span>':'<span class="dash">—</span>'}</td>
+          <td class="n">${r.h&&r.l?(r.l/r.h).toFixed(1):'<span class="dash">—</span>'}</td></tr>`).join('')}
+        </tbody></table></div></div>`;
+  }
+
   function templates(v){
     return `
     ${servicePanel(v)}
+    ${dieselPanel(v)}
     ${accidentPanel(v)}
     ${finesPanel(v)}`;
   }
@@ -3916,7 +3939,7 @@ async function pull(table) {
 }
 async function start() {
   gmsg('Loading…');
-  const names = ['vehicles', 'people', 'sites', 'paper_types', 'papers', 'log_entries', 'suppliers', 'projects', 'hire_terms', 'hire_postings', 'tyres', 'tyre_moves', 'service_jobs', 'fines', 'report_files'];
+  const names = ['vehicles', 'people', 'sites', 'paper_types', 'papers', 'log_entries', 'suppliers', 'projects', 'hire_terms', 'hire_postings', 'tyres', 'tyre_moves', 'service_jobs', 'fines', 'report_files', 'diesel_lines'];
   const t = await Promise.all(names.map(pull));
   const db = {}; names.forEach((n, i) => { db[n] = t[i]; });
   const today = new Date(); const pad = n => String(n).padStart(2, '0');
