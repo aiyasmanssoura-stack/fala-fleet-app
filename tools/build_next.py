@@ -40,7 +40,14 @@ DIESEL = r"""
 """
 a = "  function templates(v){"
 assert a in js and "${servicePanel(v)}\n    ${accidentPanel(v)}" in js
-js = js.replace(a, DIESEL + a, 1).replace("${servicePanel(v)}\n    ${accidentPanel(v)}", "${servicePanel(v)}\n    ${dieselPanel(v)}\n    ${accidentPanel(v)}", 1)
+EDITJS = open(os.path.join(here, "editdriver.js"), encoding="utf-8").read()
+js = js.replace(a, DIESEL + EDITJS + a, 1).replace("${servicePanel(v)}\n    ${accidentPanel(v)}", "${servicePanel(v)}\n    ${dieselPanel(v)}\n    ${accidentPanel(v)}", 1)
+o1 = '<span class="note">newest first &middot; the one on it today is at the top</span></div>'
+assert o1 in js
+js = js.replace(o1, '<span class="note">newest first &middot; the one on it today is at the top</span>${changeBtn(v)}</div>', 1)
+o2 = '<span class="wtag">none on record</span></div>\n      <p class="sm" style="margin:0">No driver on the BOARD'
+assert o2 in js
+js = js.replace(o2, '<span class="wtag">none on record</span>${changeBtn(v)}</div>\n      <p class="sm" style="margin:0">No driver on the BOARD', 1)
 # log notes are Aiyas's own; they are not shown on the vehicle cards (4 Nov)
 a = "${v.log && v.log.length ? `<div class=\"panel\">"
 assert a in js

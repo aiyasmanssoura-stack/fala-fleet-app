@@ -22,6 +22,8 @@ async function start() {
   const X = window.TESTDATA || {};
   const F = AppData.buildF(db, iso);
   window.APPDATA = Object.assign({}, X, { F, R: AppData.buildR(F, db, iso), M: AppData.buildM(F, db, iso, window.GEO), PPL: AppData.buildPPL(F), HIRE: AppData.buildHIRE(db, iso), FINES: AppData.buildFINES(db) });   // HIRE, FINES: next steps
+  window.APPPEOPLE = db.people;
+  try { const u = (await sb.auth.getUser()).data.user; const r = await sb.from('app_users').select('role').eq('id', u.id).maybeSingle(); window.MYROLE = r.data ? r.data.role : ''; } catch (e) { window.MYROLE = ''; }
   const s = document.createElement('script'); s.textContent = document.getElementById('pagejs').textContent;
   document.body.appendChild(s);
   document.getElementById('gate').remove();
