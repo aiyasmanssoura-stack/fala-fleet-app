@@ -3939,7 +3939,7 @@ async function pull(table) {
 }
 async function start() {
   gmsg('Loading…');
-  const names = ['vehicles', 'people', 'sites', 'paper_types', 'papers', 'log_entries', 'suppliers', 'projects', 'hire_terms', 'hire_postings', 'tyres', 'tyre_moves', 'service_jobs', 'fines', 'report_files', 'diesel_lines'];
+  const names = ['vehicles', 'people', 'sites', 'paper_types', 'papers', 'log_entries', 'suppliers', 'projects', 'hire_terms', 'hire_postings', 'tyres', 'tyre_moves', 'service_jobs', 'fines', 'report_files', 'diesel_lines', 'board_history'];
   const t = await Promise.all(names.map(pull));
   const db = {}; names.forEach((n, i) => { db[n] = t[i]; });
   const today = new Date(); const pad = n => String(n).padStart(2, '0');

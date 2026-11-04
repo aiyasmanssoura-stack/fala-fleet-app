@@ -156,6 +156,14 @@
         persons[pe.passport_name]['Landside Gate Pass'] = cell(p).v;
     });
 
+    // drivers before the present one (the old DRIVER LOG), newest first
+    const dl = {};
+    (db.board_history || []).forEach((b) => {
+      const plate = byId[b.vehicle_id] ? plateOf(byId[b.vehicle_id]) : ''; if (!plate || !vehicles[plate]) return;
+      const name = b.driver_id && per[b.driver_id] ? per[b.driver_id].passport_name : s(b.driver_as_written); if (!name) return;
+      (dl[plate] = dl[plate] || []).push({ n: name, f: b.from_date ? iso(b.from_date) : null, t: b.to_date ? iso(b.to_date) : null, note: s(b.note) });
+    });
+    Object.keys(dl).forEach((plate) => { vehicles[plate].drvlog = dl[plate].sort((a, b) => { const x = a.t || a.f || '', y = b.t || b.f || ''; return x < y ? 1 : x > y ? -1 : 0; }); });
     const recordSpan = attachRecords(vehicles, db);
     return { today, classes: CLASSES, cats, sites, persons, vehicles, order, outfleet: out, fleetTally: tally, recordSpan };
   }
