@@ -162,7 +162,7 @@
     (db.board_history || []).forEach((b) => {
       const plate = byId[b.vehicle_id] ? plateOf(byId[b.vehicle_id]) : ''; if (!plate || !vehicles[plate]) return;
       const name = b.driver_id && per[b.driver_id] ? per[b.driver_id].passport_name : s(b.driver_as_written); if (!name) return;
-      (dl[plate] = dl[plate] || []).push({ n: name, f: b.from_date ? iso(b.from_date) : null, t: b.to_date ? iso(b.to_date) : null, note: s(b.note) });
+      (dl[plate] = dl[plate] || []).push({ id: b.id, n: name, f: b.from_date ? iso(b.from_date) : null, t: b.to_date ? iso(b.to_date) : null, note: s(b.note) });
     });
     Object.keys(dl).forEach((plate) => { vehicles[plate].drvlog = dl[plate].sort((a, b) => { const x = a.t || a.f || '', y = b.t || b.f || ''; return x < y ? 1 : x > y ? -1 : 0; }); });
     // sites before the present one (saved by Change site), newest first
@@ -171,9 +171,18 @@
       if (!b.site_id) return;
       const plate = byId[b.vehicle_id] ? plateOf(byId[b.vehicle_id]) : ''; if (!plate || !vehicles[plate]) return;
       const nm = (db.sites.find((x) => x.id === b.site_id) || {}).name; if (!nm) return;
-      (sl[plate] = sl[plate] || []).push({ n: nm, f: b.from_date ? iso(b.from_date) : null, t: b.to_date ? iso(b.to_date) : null, note: s(b.note) });
+      (sl[plate] = sl[plate] || []).push({ id: b.id, n: nm, f: b.from_date ? iso(b.from_date) : null, t: b.to_date ? iso(b.to_date) : null, note: s(b.note) });
     });
     Object.keys(sl).forEach((plate) => { vehicles[plate].sitelog = sl[plate].sort((a, b) => { const x = a.t || a.f || '', y = b.t || b.f || ''; return x < y ? 1 : x > y ? -1 : 0; }); });
+    // earlier (replaced) paper rows, newest first
+    const lbl = {}; DATES.forEach(([l, n]) => { lbl[n] = l; });
+    const idPlate = {}; Object.keys(vehicles).forEach((pl) => { idPlate[vehicles[pl]._id] = pl; });
+    const pt2 = {}; db.paper_types.forEach((t) => { pt2[t.id] = t.name; });
+    (db.papers || []).forEach((p) => {
+      if (p.is_current || !p.vehicle_id || !idPlate[p.vehicle_id] || !lbl[pt2[p.paper_type_id]]) return;
+      const v = vehicles[idPlate[p.vehicle_id]]; (v.phist = v.phist || []).push({ id: p.id, k: lbl[pt2[p.paper_type_id]], v: iso(p.expiry), ref: s(p.ref_no), note: s(p.note), u: iso(p.updated_at) });
+    });
+    Object.values(vehicles).forEach((v) => { if (v.phist) v.phist.sort((a, b) => (a.u < b.u ? 1 : a.u > b.u ? -1 : 0)); });
     const recordSpan = attachRecords(vehicles, db);
     return { today, classes: CLASSES, cats, sites, persons, vehicles, order, outfleet: out, fleetTally: tally, recordSpan };
   }

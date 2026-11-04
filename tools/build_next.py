@@ -43,6 +43,7 @@ assert a in js and "${servicePanel(v)}\n    ${accidentPanel(v)}" in js
 EDITJS = open(os.path.join(here, "editdriver.js"), encoding="utf-8").read()
 EDITJS += open(os.path.join(here, "editsite.js"), encoding="utf-8").read()
 EDITJS += open(os.path.join(here, "editpaper.js"), encoding="utf-8").read()
+EDITJS += open(os.path.join(here, "edithist.js"), encoding="utf-8").read()
 js = js.replace(a, DIESEL + EDITJS + a, 1).replace("${servicePanel(v)}\n    ${accidentPanel(v)}", "${servicePanel(v)}\n    ${dieselPanel(v)}\n    ${accidentPanel(v)}", 1)
 o1 = '<span class="note">newest first &middot; the one on it today is at the top</span></div>'
 assert o1 in js
@@ -62,6 +63,16 @@ js = js.replace(o5, '<div class="d">${esc(LBL[s][0])}</div><div class="left sm">
 o6 = "  function renderCard(plate){\n    const v = V[plate];"
 assert o6 in js
 js = js.replace(o6, "  function renderCard(plate){\n    window.__curPlate = plate;\n    const v = V[plate];", 1)
+o7 = '<th class="n">Time on it</th><th>Note</th></tr></thead>'
+assert js.count(o7) == 1
+js = js.replace(o7, '<th class="n">Time on it</th><th>Note</th>${histTh()}</tr></thead>', 1)
+o8 = '<td class="sm">${r.note?esc(r.note):\'\'}</td></tr>`).join(\'\')}\n        </tbody></table></div>\n    </div>`;\n  }\n\n\n  function dieselPanel'
+o8 = "<td class=\"sm\">${r.note?esc(r.note):''}</td></tr>`).join('')}\n        </tbody></table></div>\n    </div>`;\n  }\n\n\n  function dieselPanel"
+assert js.count(o8) == 1, js.count(o8)
+js = js.replace(o8, o8.replace("</td></tr>`", "</td>${histTd('driver', r, v.plate)}</tr>`"), 1)
+o9 = "    ${tagRows.length?`<div class=\"panel\">"
+assert js.count(o9) == 1
+js = js.replace(o9, "    ${paperHistPanel(v)}\n" + o9, 1)
 # log notes are Aiyas's own; they are not shown on the vehicle cards (4 Nov)
 a = "${v.log && v.log.length ? `<div class=\"panel\">"
 assert a in js

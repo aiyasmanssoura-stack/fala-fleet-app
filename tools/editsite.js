@@ -15,10 +15,10 @@
       <div class="ph"><h3>Sites this ${v.cls === 'Equipment' ? 'machine' : 'truck'} has been at</h3>
         ${rows.length ? `<span class="pill p-ok">${rows.length} on record</span>` : '<span class="wtag">none on record</span>'}${btn}</div>
       ${rows.length ? `<div class="scroll"><table>
-        <thead><tr><th>Site</th><th class="n">From</th><th class="n">To</th><th>Note</th></tr></thead>
+        <thead><tr><th>Site</th><th class="n">From</th><th class="n">To</th><th>Note</th>${histTh()}</tr></thead>
         <tbody>${rows.map(r => `<tr><td><b>${esc(r.n)}</b>${r.cur ? ' <span class="pill p-ok">there now</span>' : ''}</td>
           <td class="n"><b>${dt(r.f)}</b></td><td class="n">${r.cur ? '<span class="sm">to date</span>' : dt(r.t)}</td>
-          <td class="sm">${esc(r.note || '')}</td></tr>`).join('')}</tbody></table></div>` : ''}</div>`;
+          <td class="sm">${esc(r.note || '')}</td>${histTd('site', r, v.plate)}</tr>`).join('')}</tbody></table></div>` : ''}</div>`;
   }
   function openChangeSite(plate){
     const v = V[plate]; if(!v || document.getElementById('chgDlg')) return;
