@@ -2665,7 +2665,7 @@ let drawLeads = ()=>{};
       return bits.length ? `<div class="waiting">${bits.join(' ')}</div>` : '';
     })()}
 
-    ${v.log && v.log.length ? `<div class="panel">
+    ${false ? `<div class="panel">
       <div class="ph"><h3>From the log</h3><span class="note">your own entries for this plate</span></div>
       ${v.log.map(e=>`<div style="display:flex;gap:11px;padding:7px 0;border-bottom:1px solid var(--line)">
         <b class="sm" style="flex:none;width:86px">${fmt.format(parse(e.d))}</b>
