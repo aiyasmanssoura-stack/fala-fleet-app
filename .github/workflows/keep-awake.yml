@@ -9,8 +9,10 @@ jobs:
     steps:
       - name: One small visit to the database
         run: |
-          code=$(curl -s -o /dev/null -w "%{http_code}" \
+          code=$(curl -s -o body.txt -w "%{http_code}" \
             -H "apikey: sb_publishable_x-C3LN42cBLjH4hHYvNs1Q_ktcSjZYe" \
             "https://lmtwqdoldsxalwshltne.supabase.co/rest/v1/sites?select=id&limit=1")
           echo "database answered: $code"
-          test "$code" = "200"
+          cat body.txt; echo
+          # 200 = read ok; 401 with a permission message = the database itself answered (locked data)
+          test "$code" = "200" || grep -q "permission denied" body.txt
