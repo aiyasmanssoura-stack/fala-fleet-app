@@ -73,6 +73,22 @@ js = js.replace(o8, o8.replace("</td></tr>`", "</td>${histTd('driver', r, v.plat
 o9 = "    ${tagRows.length?`<div class=\"panel\">"
 assert js.count(o9) == 1
 js = js.replace(o9, "    ${paperHistPanel(v)}\n" + o9, 1)
+HOME = open(os.path.join(here, "home.js"), encoding="utf-8").read()
+o10 = "/* ============================= tabs ============================= */\nel('cntRenew')"
+assert js.count(o10) == 1
+js = js.replace(o10, "/* ============================= tabs ============================= */\n" + HOME + "el('cntRenew')", 1)
+o11 = "lists:['tabLists','pgLists']};"
+assert js.count(o11) == 1
+js = js.replace(o11, "lists:['tabLists','pgLists'], home:['tabHome','pgHome']};", 1)
+o12 = "  if(h === 'lists' || h.startsWith('lists/'))"
+assert js.count(o12) == 1
+js = js.replace(o12, "  if((h === '' || h === 'home') && window.MYROLE === 'admin'){ show('home', false); renderHome(); return; }\n" + o12, 1)
+o13 = '<nav class="rail" role="tablist" aria-label="Sections">'
+assert head.count(o13) == 1
+head = head.replace(o13, o13 + '\n    <button role="tab" id="tabHome" aria-selected="false" aria-controls="pgHome" style="display:none">\n      <svg viewBox="0 0 17 17" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 8 8.5 3 14.5 8M4 7v7h9V7"/></svg>\n      Home</button>', 1)
+o14 = '<section id="pgFleet" role="tabpanel">'
+assert head.count(o14) == 1
+head = head.replace(o14, '<section id="pgHome" role="tabpanel" hidden><div id="homeBody"></div></section>\n\n' + o14, 1)
 # log notes are Aiyas's own; they are not shown on the vehicle cards (4 Nov)
 a = "${v.log && v.log.length ? `<div class=\"panel\">"
 assert a in js
@@ -85,6 +101,7 @@ open(os.path.join(root, 'next', 'icons.js'), 'w').write('window.ICONS_DATA=' + o
 out = head + gate + '\n<script type="text/plain" id="pagejs">\n' + js + '\n</script>\n'
 out += '<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>\n'
 os.system(f'cp {here}/geo.js {root}/next/geo.js')
+os.system(f'cp {here}/xlsx.js {root}/next/xlsx.js')
 out += ('<script src="testdata.js"></script>\n' if test else '') + '<script src="geo.js"></script>\n' + '<script src="icons.js"></script>\n<script src="appdata.js"></script>\n<script>\n' + boot + '\n</script>\n' + tail
 open(os.path.join(root, 'next', 'index.html'), 'w', encoding='utf-8').write(out)
 open(os.path.join(root, 'next', 'appdata.js'), 'w').write(open(os.path.join(here, 'appdata.js')).read())
