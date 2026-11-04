@@ -42,6 +42,7 @@ a = "  function templates(v){"
 assert a in js and "${servicePanel(v)}\n    ${accidentPanel(v)}" in js
 EDITJS = open(os.path.join(here, "editdriver.js"), encoding="utf-8").read()
 EDITJS += open(os.path.join(here, "editsite.js"), encoding="utf-8").read()
+EDITJS += open(os.path.join(here, "editpaper.js"), encoding="utf-8").read()
 js = js.replace(a, DIESEL + EDITJS + a, 1).replace("${servicePanel(v)}\n    ${accidentPanel(v)}", "${servicePanel(v)}\n    ${dieselPanel(v)}\n    ${accidentPanel(v)}", 1)
 o1 = '<span class="note">newest first &middot; the one on it today is at the top</span></div>'
 assert o1 in js
@@ -52,6 +53,15 @@ js = js.replace(o2, '<span class="wtag">none on record</span>${changeBtn(v)}</di
 o3 = "${driverLogPanel(v)}"
 assert js.count(o3) == 1
 js = js.replace(o3, o3 + "\n    ${sitesPanel(v)}", 1)
+o4 = '<div class="d">${fmt.format(parse(d.v))}</div><div class="left">${word}</div></div>`;'
+assert o4 in js
+js = js.replace(o4, '<div class="d">${fmt.format(parse(d.v))}</div><div class="left">${word}</div>${renewBtn(d)}</div>`;', 1)
+o5 = '<div class="d">${esc(LBL[s][0])}</div><div class="left sm">${LBL[s][1]}</div></div>`;'
+assert o5 in js
+js = js.replace(o5, '<div class="d">${esc(LBL[s][0])}</div><div class="left sm">${LBL[s][1]}</div>${renewBtn(d)}</div>`;', 1)
+o6 = "  function renderCard(plate){\n    const v = V[plate];"
+assert o6 in js
+js = js.replace(o6, "  function renderCard(plate){\n    window.__curPlate = plate;\n    const v = V[plate];", 1)
 # log notes are Aiyas's own; they are not shown on the vehicle cards (4 Nov)
 a = "${v.log && v.log.length ? `<div class=\"panel\">"
 assert a in js

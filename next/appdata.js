@@ -73,6 +73,7 @@
     });
     Object.values(logOf).forEach((a) => a.sort((x, y) => (x.d < y.d ? -1 : x.d > y.d ? 1 : 0)));
 
+    const vtypeId = {}; (db.papers || []).forEach((p) => { if (p.vehicle_id) { const t = db.paper_types.find((x) => x.id === p.paper_type_id); if (t) vtypeId[t.name] = p.paper_type_id; } });
     const vehicles = {};
     own.forEach((v) => {
       const plate = plateOf(v); if (!plate) return;
@@ -80,7 +81,7 @@
       const pull = v.pulled_by_id ? byId[v.pulled_by_id] : null;
       const cls = CLASS_MAP[v.class] || s(v.class);
 
-      const dates = DATES.map(([label, name, thr]) => Object.assign({ k: label, thr }, cell(pp[name])));
+      const dates = DATES.map(([label, name, thr]) => Object.assign({ k: label, thr, vid: v.id, tid: vtypeId[name] }, cell(pp[name])));
 
       const tags = [];
       const tag = (k, val, extra) => { val = s(val); if (val) tags.push(Object.assign({ k, v: val }, extra || {})); };
