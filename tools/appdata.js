@@ -156,8 +156,52 @@
         persons[pe.passport_name]['Landside Gate Pass'] = cell(p).v;
     });
 
-    return { today, classes: CLASSES, cats, sites, persons, vehicles, order, outfleet: out, fleetTally: tally,
-      recordSpan: { tyreFrom: '', tyreTo: '', svcFrom: '', svcTo: '' } };
+    const recordSpan = attachRecords(vehicles, db);
+    return { today, classes: CLASSES, cats, sites, persons, vehicles, order, outfleet: out, fleetTally: tally, recordSpan };
+  }
+
+  // ---------------------------------------------------------------- tyres and service on each card
+  // Same result as merge_records.py: newest change per position, full history, the workshop's asset code,
+  // service newest first. The owner/trailer split is already in the data (tyre_moves.vehicle_id is the
+  // vehicle that wears the tyre, booked_plate the truck it was booked under).
+  const digitsOf = (x) => String(x == null ? '' : x).replace(/\D/g, '');
+  function attachRecords(vehicles, db) {
+    const plateById = {}; db.vehicles.forEach((v) => { plateById[v.id] = s(v.number); });
+    const tyreById = {}; (db.tyres || []).forEach((x) => { tyreById[x.id] = x; });
+    const moves = (db.tyre_moves || []).slice().sort((a, b) => a.id - b.id);
+    const hist = {}, cur = {};
+    let tFrom = '', tTo = '';
+    moves.forEach((m) => {
+      const plate = plateById[m.vehicle_id]; if (!plate || !vehicles[plate]) return;
+      const ty = tyreById[m.tyre_id] || {}, d = iso(m.from_date);
+      if (d && (!tFrom || d < tFrom)) tFrom = d;
+      if (d && (!tTo || d > tTo)) tTo = d;
+      const via = s(m.booked_plate);
+      const rec = { date: d, plate: digitsOf(via || plate), asset: s(m.asset), mtype: s(m.machine), proj: s(m.project), pos: s(m.position),
+        ser: s(ty.tyre_no), size: s(ty.size), brand: s(m.brand_as_written || ty.brand), src: '', via };
+      (hist[plate] = hist[plate] || []).push(rec);
+      cur[plate] = cur[plate] || {};
+      const c = cur[plate][rec.pos];
+      if (!c || rec.date > c.date) cur[plate][rec.pos] = rec;
+    });
+    Object.keys(hist).forEach((plate) => {
+      const v = vehicles[plate];
+      v.tyres = {}; Object.keys(cur[plate]).forEach((pos) => { const r = cur[plate][pos]; v.tyres[pos] = { d: r.date, b: r.brand, s: r.ser, sz: r.size, pr: r.proj }; });
+      v.tyreHist = hist[plate].slice().sort((a, b) => (a.date !== b.date ? (a.date < b.date ? 1 : -1) : (a.pos !== b.pos ? (a.pos < b.pos ? 1 : -1) : 0)));
+      const assets = new Set(hist[plate].map((r) => r.asset).filter(Boolean));
+      if (assets.size === 1) v.asset = [...assets][0];
+    });
+    const svc = {}; let sFrom = '', sTo = '';
+    (db.service_jobs || []).slice().sort((a, b) => a.id - b.id).forEach((j) => {
+      const plate = plateById[j.vehicle_id]; const d = iso(j.job_date);
+      if (d && (!sFrom || d < sFrom)) sFrom = d;
+      if (d && (!sTo || d > sTo)) sTo = d;
+      if (!plate || !vehicles[plate]) return;
+      const r = s(j.unit) === 'HM' ? j.hours : j.odometer;
+      (svc[plate] = svc[plate] || []).push({ d, j: s(j.job), t: s(j.service_type), by: s(j.done_by), r: r === null || r === undefined ? null : Number(r), u: s(j.unit) });
+    });
+    Object.keys(svc).forEach((plate) => { vehicles[plate].svc = svc[plate].sort((a, b) => (a.d < b.d ? 1 : a.d > b.d ? -1 : 0)); });
+    return { tyreFrom: tFrom, tyreTo: tTo, svcFrom: sFrom, svcTo: sTo };
   }
 
 
@@ -393,6 +437,13 @@
         note: s(t.note).replace(/^Operator Status written as: .*$/, ''), art: ART_HIRE[type] || '', svcd: false });
     });
     rows.sort((a, b) => cmp(a.proj, b.proj) || cmp(a.type, b.type) || cmp(a.plate, b.plate));
+    // hired machines the workshop services (matched on the digits of the plate)
+    const svcByDig = {};
+    (db.service_jobs || []).forEach((j) => { const v = veh[j.vehicle_id]; if (!v || v.ownership === 'Own') return;
+      const d = digitsOf(v.number); const r = s(j.unit) === 'HM' ? j.hours : j.odometer;
+      (svcByDig[d] = svcByDig[d] || []).push({ d: iso(j.job_date), j: s(j.job), t: s(j.service_type), by: s(j.done_by), r: r === null || r === undefined ? null : Number(r), u: s(j.unit) }); });
+    rows.forEach((r) => { const got = (svcByDig[r.dig] || []).slice().sort((a, b) => (a.d < b.d ? 1 : a.d > b.d ? -1 : 0));
+      if (r.dig && got.length) { r.svc = got; r.svcd = true; } else r.svcd = false; });
     const firms = tally(rows.map((r) => r.firm)).map(([firm, n]) => { const ms = rows.filter((r) => r.firm === firm);
       return { firm, n, rate: ms.reduce((x, r) => x + (r.rate || 0), 0), rated: ms.filter((r) => r.rate).length, types: tally(ms.map((r) => r.type)),
         projects: [...new Set(ms.map((r) => r.proj))].sort(), withDriver: ms.filter((r) => r.withDriver).length, jack: ms.filter((r) => r.jack).length,
@@ -411,10 +462,42 @@
       dieselBy: tally(rows.map((r) => r.diesel || '(not stated)')), bySite, source: 'RAW DATA — Hired IN', orphanServices: [] };
   }
 
-  // Fines are not in the database yet (Phase 5): the page gets its usual shape, empty.
-  function buildFINES() {
-    return { tickets: [], accidents: [], byVehicle: {}, per: {}, offFleet: [], offFleetAcc: [],
-      tally: { n: 0, fee: 0, vehicles: 0, acc: 0, accVehicles: 0, sheetN: 0, sheetFee: 0, linked: 0 }, source: 'not loaded yet' };
+  // ---------------------------------------------------------------- Fines (same shape parse_fines.py wrote)
+  function buildFINES(db) {
+    const rows = (db && db.fines) || [];
+    const plateById = {}; (db && db.vehicles || []).forEach((v) => { plateById[v.id] = s(v.number); });
+    const rf = ((db && db.report_files) || []).filter((x) => x.kind === 'Fines').sort((a, b) => b.id - a.id)[0];
+    const note = rf ? s(rf.note) : '';
+    const sheetN = +((/sheetN=(\d+)/.exec(note) || [])[1] || 0), sheetFee = +((/sheetFee=(\d+)/.exec(note) || [])[1] || 0);
+    const num = (x) => (x === null || x === undefined ? null : Number(x));
+    const withOf = (r) => s(r.also_with).split(',').map(s).filter(Boolean);
+    const tickets = [], accidents = [], offFleet = [], offFleetAcc = [];
+    rows.slice().sort((a, b) => a.id - b.id).forEach((r) => {
+      const plate = r.vehicle_id ? plateById[r.vehicle_id] : '';
+      if (r.kind === 'Ticket') {
+        if (!plate) { offFleet.push({ wrote: s(r.vehicle_as_written), fee: num(r.amount), r: r.sheet_row }); return; }
+        tickets.push({ plate, paid: r.paid_date ? iso(r.paid_date) : '', date: r.fine_date ? iso(r.fine_date) : '', rcpt: s(r.ticket_no),
+          fee: num(r.amount), full: num(r.full_amount), with: withOf(r), drv: s(r.name_as_written), who: s(r.note), what: s(r.offence) });
+      } else {
+        if (!plate) { offFleetAcc.push({ wrote: s(r.vehicle_as_written), r: r.sheet_row }); return; }
+        accidents.push({ plate, date: r.fine_date ? iso(r.fine_date) : '', wrote: s(r.date_as_written), drv: s(r.name_as_written), who: s(r.note),
+          with: withOf(r), cause: s(r.cause), dmg: s(r.damage) });
+      }
+    });
+    const key = (x) => x || '';
+    tickets.sort((a, b) => (key(a.paid) < key(b.paid) ? -1 : key(a.paid) > key(b.paid) ? 1 : a.plate < b.plate ? -1 : a.plate > b.plate ? 1 : 0));
+    accidents.sort((a, b) => (key(a.date) < key(b.date) ? 1 : key(a.date) > key(b.date) ? -1 : a.plate < b.plate ? 1 : a.plate > b.plate ? -1 : 0));
+    accidents.sort((a, b) => (!a.date) - (!b.date));      // undated to the bottom
+    const byVehicle = {};
+    tickets.forEach((x) => { (byVehicle[x.plate] = byVehicle[x.plate] || { tickets: [], accidents: [] }).tickets.push(x); });
+    accidents.forEach((x) => { (byVehicle[x.plate] = byVehicle[x.plate] || { tickets: [], accidents: [] }).accidents.push(x); });
+    const per = {}; Object.keys(byVehicle).forEach((p) => { const d = byVehicle[p];
+      per[p] = { n: d.tickets.length, fee: Math.round(d.tickets.reduce((x, y) => x + y.fee, 0) * 100) / 100, acc: d.accidents.length }; });
+    const linked = new Set(tickets.concat(accidents).map((x) => x.who).filter(Boolean));
+    return { tickets, accidents, byVehicle, per, offFleet, offFleetAcc,
+      tally: { n: tickets.length, fee: Math.round(tickets.reduce((x, y) => x + y.fee, 0) * 100) / 100, vehicles: Object.keys(per).length,
+        acc: accidents.length, accVehicles: new Set(accidents.map((x) => x.plate)).size, sheetN, sheetFee, linked: linked.size },
+      source: rf ? 'Input/Traffic Reports/' + s(rf.file_name).replace(/ \(loaded.*$/, '') : 'no fines loaded' };
   }
   window.AppData = { buildFINES, buildHIRE, buildPPL, buildM, buildR, buildF, indexPapers, cell, iso, s, CLASSES };
 })();

@@ -3916,14 +3916,14 @@ async function pull(table) {
 }
 async function start() {
   gmsg('Loading…');
-  const names = ['vehicles', 'people', 'sites', 'paper_types', 'papers', 'log_entries', 'suppliers', 'projects', 'hire_terms', 'hire_postings'];
+  const names = ['vehicles', 'people', 'sites', 'paper_types', 'papers', 'log_entries', 'suppliers', 'projects', 'hire_terms', 'hire_postings', 'tyres', 'tyre_moves', 'service_jobs', 'fines', 'report_files'];
   const t = await Promise.all(names.map(pull));
   const db = {}; names.forEach((n, i) => { db[n] = t[i]; });
   const today = new Date(); const pad = n => String(n).padStart(2, '0');
   const iso = `${today.getFullYear()}-${pad(today.getMonth() + 1)}-${pad(today.getDate())}`;
   const X = window.TESTDATA || {};
   const F = AppData.buildF(db, iso);
-  window.APPDATA = Object.assign({}, X, { F, R: AppData.buildR(F, db, iso), M: AppData.buildM(F, db, iso, window.GEO), PPL: AppData.buildPPL(F), HIRE: AppData.buildHIRE(db, iso), FINES: AppData.buildFINES() });   // HIRE, FINES: next steps
+  window.APPDATA = Object.assign({}, X, { F, R: AppData.buildR(F, db, iso), M: AppData.buildM(F, db, iso, window.GEO), PPL: AppData.buildPPL(F), HIRE: AppData.buildHIRE(db, iso), FINES: AppData.buildFINES(db) });   // HIRE, FINES: next steps
   const s = document.createElement('script'); s.textContent = document.getElementById('pagejs').textContent;
   document.body.appendChild(s);
   document.getElementById('gate').remove();
