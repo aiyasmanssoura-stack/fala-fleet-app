@@ -99,6 +99,13 @@ js = js.replace(o16, CARDJS + "  function renderCardOld(plate){\n    window.__cu
 CARDCSS = open(os.path.join(here, "cardlayout.css"), encoding="utf-8").read()
 k = head.rfind("</style>")
 head = head[:k] + CARDCSS + head[k:]
+# dark mode: --navy turns almost black, so text that used it vanished (Lists numbers etc.). --brand is the same navy in light mode and light blue in dark.
+for o in ["#pgLists .lcard .big{font-size:27px;font-weight:700;color:var(--navy)", ".rail .hub{color:var(--navy)", "letter-spacing:-.03em;font-variant-numeric:tabular-nums;color:var(--navy)}"]:
+    assert head.count(o) == 1, o
+    head = head.replace(o, o.replace("color:var(--navy)", "color:var(--brand)"), 1)
+o = "h2{font-size:17px;font-weight:600;margin:34px 0 8px;color:var(--navy)"
+assert head.count(o) == 1
+head = head.replace(o, o.replace("color:var(--navy)", "color:var(--brand)"), 1)
 # log notes are Aiyas's own; they are not shown on the vehicle cards (4 Nov)
 a = "${v.log && v.log.length ? `<div class=\"panel\">"
 assert a in js
