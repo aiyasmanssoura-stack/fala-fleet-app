@@ -4400,30 +4400,73 @@ function renderHome(){
         : '<p class="sm" style="margin:0">Nothing yet. Changes made with Change driver, Change site, Renew and the history fixes show here.</p>'}</div>`;
   el('homeXl').onclick = homeExcel;
 }
+/* Full backup: one sheet per database table, every column, original ids kept, plus a "Read me" sheet.
+   Row counts are checked against the database before the file is saved. */
+const XL_TABLES = [
+  ['vehicles','Every truck, trailer, vehicle and machine (own and hired). driver_id, site_id link to people and sites.'],
+  ['people','Drivers and other staff.'],
+  ['sites','Sites / yards.'],
+  ['projects','Projects.'],
+  ['paper_types','The list of paper names (registration, insurance, permits...).'],
+  ['papers','Every paper of every vehicle: current (is_current = true) and earlier ones.'],
+  ['board_history','Driver and site history of each vehicle (from / to dates).'],
+  ['log_entries','Your history notes.'],
+  ['tyres','Tyres.'],
+  ['tyre_moves','Tyre fitting and removal movements.'],
+  ['service_jobs','Service and maintenance jobs.'],
+  ['fines','Traffic fines.'],
+  ['diesel_lines','Diesel lines.'],
+  ['suppliers','Hire suppliers.'],
+  ['hire_terms','Hired-in terms (rates, periods).'],
+  ['hire_postings','Hired-in postings.'],
+  ['report_files','Which reports were loaded, and the dates they cover.'],
+  ['name_spellings','Name spelling fixes.'],
+  ['app_users','Who can log in and their role (passwords are private to Supabase and cannot be exported).'],
+  ['change_log','Everything changed in the app (who, when, old and new values).']
+];
+async function xlPull(table){
+  const out = []; let from = 0;
+  for(;;){
+    const { data, error } = await sb.from(table).select('*').order('id', { ascending: true }).range(from, from + 999);
+    if(error) throw new Error(table + ': ' + error.message);
+    out.push(...data); if(data.length < 1000) return out; from += 1000;
+  }
+}
+async function xlCount(table){
+  const { count, error } = await sb.from(table).select('*', { count: 'exact', head: true });
+  if(error) throw new Error(table + ': ' + error.message);
+  return count;
+}
+async function homeExcelRun(){
+  const X = window.XLSX, wb = X.utils.book_new(), readme = [], bad = [];
+  const flat = v => v === null || v === undefined ? '' : typeof v === 'object' ? JSON.stringify(v) : v;
+  const sheets = [];
+  for(const [t, what] of XL_TABLES){
+    const b = el('homeXl'); if(b) b.textContent = 'Preparing ' + t + '…';
+    const rows = await xlPull(t), dbn = await xlCount(t);
+    const cols = []; rows.forEach(r => Object.keys(r).forEach(k => { if(!cols.includes(k)) cols.push(k); }));
+    const data = rows.map(r => { const o = {}; cols.forEach(k => { o[k] = flat(r[k]); }); return o; });
+    const ws = data.length ? X.utils.json_to_sheet(data, { header: cols }) : X.utils.aoa_to_sheet([['(no rows in this table)']]);
+    sheets.push([t, ws]);
+    const ok = rows.length === dbn;
+    if(!ok) bad.push(t);
+    readme.push({ Sheet: t, 'What it holds': what, 'Rows in the database': dbn, 'Rows in this sheet': rows.length, Match: ok ? 'yes' : 'NO', Columns: cols.join(', ') });
+  }
+  const now = new Date();
+  const head = [{ Sheet: 'READ ME', 'What it holds': 'Full copy of the Fala Fleet App database, made ' + now.toLocaleString('en-GB') + ' by ' + ((window.MYEMAIL) || 'admin') + '. One sheet per table, all columns, original ids kept: columns ending in _id point to the id column of another sheet: vehicle_id = vehicles, driver_id / second_driver_id / person_id = people, pulled_by_id = vehicles, site_id = sites, project_id = projects, paper_type_id = paper_types, supplier_id = suppliers, tyre_id = tyres, hire_terms_id = hire_terms, report_file_id = report_files.' }];
+  X.utils.book_append_sheet(wb, X.utils.json_to_sheet(head.concat([{}], readme), { header: ['Sheet', 'What it holds', 'Rows in the database', 'Rows in this sheet', 'Match', 'Columns'] }), 'Read me');
+  sheets.forEach(([t, ws]) => X.utils.book_append_sheet(wb, ws, t));
+  if(bad.length) throw new Error('Row counts do not match for: ' + bad.join(', ') + '. File not saved.');
+  const p = n => String(n).padStart(2, '0');
+  X.writeFile(wb, `Fala Fleet FULL ${now.getFullYear()}-${p(now.getMonth()+1)}-${p(now.getDate())}.xlsx`);
+}
 function homeExcel(){
   const b = el('homeXl'); b.disabled = true; b.textContent = 'Preparing…';
-  const go2 = () => {
-    try{
-      const X = window.XLSX, dateKeys = ['Registration','Insurance','AMIA landside pass','Fujaira permit','FNRC WB tag'];
-      const veh = Object.values(F.vehicles).map(v => {
-        const r = {Plate:v.plate, Class:v.cls, Type:v.type, 'Fleet status':v.fleet, Site:v._yard||'', 'At site since':v.since||'', Driver:v.driver||'', 'Driver since':v.dsince||''};
-        dateKeys.forEach(k => { const d = (v.dates||[]).find(x=>x.k===k); r[k] = d ? (d.st==='date' ? d.v : d.v||'') : ''; });
-        return r;
-      });
-      const ppl = Object.values(F.persons || {});
-      const log = (window.APPLOG||[]).map(e=>({When:homeWhen(e.at), Who:e.by_email||'', Type:e.kind, What:e.summary}));
-      const wb = X.utils.book_new();
-      X.utils.book_append_sheet(wb, X.utils.json_to_sheet(veh), 'Vehicles');
-      if(ppl.length) X.utils.book_append_sheet(wb, X.utils.json_to_sheet(ppl), 'People');
-      X.utils.book_append_sheet(wb, X.utils.json_to_sheet(log.length?log:[{When:'',Who:'',Type:'',What:''}]), 'Change log');
-      const t = new Date(), p = n=>String(n).padStart(2,'0');
-      X.writeFile(wb, `Fala Fleet ${t.getFullYear()}-${p(t.getMonth()+1)}-${p(t.getDate())}.xlsx`);
-    }catch(e){ alert('Could not make the Excel file: ' + e.message); }
-    b.disabled = false; b.textContent = 'Download Excel';
-  };
+  const done = () => { b.disabled = false; b.textContent = 'Download Excel'; };
+  const go2 = () => { homeExcelRun().then(done).catch(e => { alert('Could not make the Excel file: ' + e.message); done(); }); };
   if(window.XLSX) return go2();
   const s = document.createElement('script'); s.src = 'xlsx.js'; s.onload = go2;
-  s.onerror = () => { b.disabled = false; b.textContent = 'Download Excel'; alert('Could not load the Excel maker.'); };
+  s.onerror = () => { done(); alert('Could not load the Excel maker.'); };
   document.head.appendChild(s);
 }
 if(window.MYROLE === 'admin') el('tabHome').style.display = '';
