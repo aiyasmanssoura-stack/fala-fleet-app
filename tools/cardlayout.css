@@ -22,3 +22,6 @@
 @media (max-width:1500px){#pgFleet .cgrid{grid-template-columns:minmax(0,300px) minmax(0,1fr)}
  #pgFleet .cgrid .ccol:nth-child(3){grid-column:1/-1;flex-direction:row;align-items:stretch}
  #pgFleet .cgrid .ccol:nth-child(3)>.panel{flex:1}}
+/* dark mode: the line drawings are navy on dark; lift them */
+:root[data-theme="dark"] #pgFleet img[src^="data:image/png"],:root[data-theme="dark"] #pgHired img[src^="data:image/png"]{filter:brightness(2.4) saturate(1.15)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) #pgFleet img[src^="data:image/png"],:root:not([data-theme="light"]) #pgHired img[src^="data:image/png"]{filter:brightness(2.4) saturate(1.15)}}
