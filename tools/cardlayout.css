@@ -25,3 +25,9 @@
 /* dark mode: the line drawings are navy on dark; lift them */
 :root[data-theme="dark"] #pgFleet img[src^="data:image/png"],:root[data-theme="dark"] #pgHired img[src^="data:image/png"]{filter:brightness(3.2) saturate(2.4) contrast(1.15) drop-shadow(0 0 5px rgba(140,200,255,.65))}
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]) #pgFleet img[src^="data:image/png"],:root:not([data-theme="light"]) #pgHired img[src^="data:image/png"]{filter:brightness(3.2) saturate(2.4) contrast(1.15) drop-shadow(0 0 5px rgba(140,200,255,.65))}}
+/* slimmer navy top band (5 Nov) */
+.band.mast{padding:8px 0}
+.mast-logo img{width:52px}
+.mast h1{font-size:clamp(18px,2.4vw,23px)}
+.mast .period{font-size:12px}
+@media (min-width:901px){.mast-logo{width:212px}}
