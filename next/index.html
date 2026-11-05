@@ -980,6 +980,7 @@ footer{color:var(--muted);font-size:11.5px;margin-top:34px;line-height:1.7;max-w
         <div class="qres" id="qres" role="listbox" hidden></div>
       </div>
       <button class="btn ghost" id="themeBtn" type="button">Dark mode</button>
+      <button class="btn ghost" id="signOutBtn" type="button">Sign out</button>
     </div>
   </div>
 </div>
@@ -4548,5 +4549,6 @@ document.getElementById('gateForm').addEventListener('submit', async (ev) => {
 });
 sb.auth.getSession().then(({ data }) => { if (data.session) enter(); });
 
+document.getElementById('signOutBtn').addEventListener('click', async () => { try { await sb.auth.signOut(); } catch (e) {} location.reload(); });
 </script>
 

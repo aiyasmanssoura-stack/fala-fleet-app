@@ -109,6 +109,11 @@ head = head.replace(o, o.replace("color:var(--navy)", "color:var(--brand)"), 1)
 o17 = "<title>FALA Fleet Registry</title>"
 assert head.count(o17) == 1
 head = head.replace(o17, o17 + '\n<link rel="icon" type="image/png" sizes="32x32" href="icon-32.png">\n<link rel="apple-touch-icon" href="apple-touch-icon.png">\n<link rel="manifest" href="manifest.webmanifest">\n<meta name="theme-color" content="#16315c">', 1)
+# Sign out button next to Dark mode (5 Nov)
+o_t = '<button class="btn ghost" id="themeBtn" type="button">Dark mode</button>'
+assert head.count(o_t) == 1
+head = head.replace(o_t, o_t + '\n      <button class="btn ghost" id="signOutBtn" type="button">Sign out</button>', 1)
+SIGNOUT = "document.getElementById('signOutBtn').addEventListener('click', async () => { try { await sb.auth.signOut(); } catch (e) {} location.reload(); });\n"
 # log notes are Aiyas's own; they are not shown on the vehicle cards (4 Nov)
 a = "${v.log && v.log.length ? `<div class=\"panel\">"
 assert a in js
@@ -124,7 +129,7 @@ os.system(f'cp {here}/geo.js {root}/next/geo.js')
 os.system(f'cp {here}/icons/*.png {root}/next/')
 open(os.path.join(root, 'next', 'manifest.webmanifest'), 'w').write(json.dumps({'name': 'FALA Fleet Registry', 'short_name': 'Fala Fleet', 'start_url': './', 'display': 'standalone', 'background_color': '#16315c', 'theme_color': '#16315c', 'icons': [{'src': 'icon-192.png', 'sizes': '192x192', 'type': 'image/png'}, {'src': 'icon-512.png', 'sizes': '512x512', 'type': 'image/png'}]}))
 os.system(f'cp {here}/xlsx.js {root}/next/xlsx.js')
-out += ('<script src="testdata.js"></script>\n' if test else '') + '<script src="geo.js"></script>\n' + '<script src="icons.js"></script>\n<script src="appdata.js"></script>\n<script>\n' + boot + '\n</script>\n' + tail
+out += ('<script src="testdata.js"></script>\n' if test else '') + '<script src="geo.js"></script>\n' + '<script src="icons.js"></script>\n<script src="appdata.js"></script>\n<script>\n' + boot + '\n' + SIGNOUT + '</script>\n' + tail
 open(os.path.join(root, 'next', 'index.html'), 'w', encoding='utf-8').write(out)
 open(os.path.join(root, 'next', 'appdata.js'), 'w').write(open(os.path.join(here, 'appdata.js')).read())
 os.makedirs(os.path.join(root, 'next', 'assets'), exist_ok=True)
