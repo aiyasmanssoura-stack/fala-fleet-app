@@ -106,6 +106,9 @@ for o in ["#pgLists .lcard .big{font-size:27px;font-weight:700;color:var(--navy)
 o = "h2{font-size:17px;font-weight:600;margin:34px 0 8px;color:var(--navy)"
 assert head.count(o) == 1
 head = head.replace(o, o.replace("color:var(--navy)", "color:var(--brand)"), 1)
+o17 = "<title>FALA Fleet Registry</title>"
+assert head.count(o17) == 1
+head = head.replace(o17, o17 + '\n<link rel="icon" type="image/png" sizes="32x32" href="icon-32.png">\n<link rel="apple-touch-icon" href="apple-touch-icon.png">\n<link rel="manifest" href="manifest.webmanifest">\n<meta name="theme-color" content="#16315c">', 1)
 # log notes are Aiyas's own; they are not shown on the vehicle cards (4 Nov)
 a = "${v.log && v.log.length ? `<div class=\"panel\">"
 assert a in js
@@ -118,6 +121,8 @@ open(os.path.join(root, 'next', 'icons.js'), 'w').write('window.ICONS_DATA=' + o
 out = head + gate + '\n<script type="text/plain" id="pagejs">\n' + js + '\n</script>\n'
 out += '<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>\n'
 os.system(f'cp {here}/geo.js {root}/next/geo.js')
+os.system(f'cp {here}/icons/*.png {root}/next/')
+open(os.path.join(root, 'next', 'manifest.webmanifest'), 'w').write(json.dumps({'name': 'FALA Fleet Registry', 'short_name': 'Fala Fleet', 'start_url': './', 'display': 'standalone', 'background_color': '#16315c', 'theme_color': '#16315c', 'icons': [{'src': 'icon-192.png', 'sizes': '192x192', 'type': 'image/png'}, {'src': 'icon-512.png', 'sizes': '512x512', 'type': 'image/png'}]}))
 os.system(f'cp {here}/xlsx.js {root}/next/xlsx.js')
 out += ('<script src="testdata.js"></script>\n' if test else '') + '<script src="geo.js"></script>\n' + '<script src="icons.js"></script>\n<script src="appdata.js"></script>\n<script>\n' + boot + '\n</script>\n' + tail
 open(os.path.join(root, 'next', 'index.html'), 'w', encoding='utf-8').write(out)
