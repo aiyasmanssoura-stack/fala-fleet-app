@@ -92,6 +92,13 @@ head = head.replace(o14, '<section id="pgHome" role="tabpanel" hidden><div id="h
 o15 = "    el('fCard').innerHTML = `\n    <div class=\"crumb\"><a data-f=\"home\">Fleet</a><span>&rsaquo;</span>\n      <a data-f=\"list\" data-cls=\"${esc(v.cls)}\">"
 assert js.count(o15) == 1
 js = js.replace(o15, "    el('fCard').innerHTML = `\n    <p style=\"margin:0 0 10px\"><a class=\"btn\" data-f=\"list\" data-back=\"1\" data-cls=\"${esc(v.cls)}\">&larr; Back to ${esc(v.cls)}</a></p>\n    <div class=\"crumb\"><a data-f=\"home\">Fleet</a><span>&rsaquo;</span>\n      <a data-f=\"list\" data-cls=\"${esc(v.cls)}\">", 1)
+CARDJS = open(os.path.join(here, "cardlayout.js"), encoding="utf-8").read()
+o16 = "  function renderCard(plate){\n    window.__curPlate = plate;"
+assert js.count(o16) == 1
+js = js.replace(o16, CARDJS + "  function renderCardOld(plate){\n    window.__curPlate = plate;", 1)
+CARDCSS = open(os.path.join(here, "cardlayout.css"), encoding="utf-8").read()
+k = head.rfind("</style>")
+head = head[:k] + CARDCSS + head[k:]
 # log notes are Aiyas's own; they are not shown on the vehicle cards (4 Nov)
 a = "${v.log && v.log.length ? `<div class=\"panel\">"
 assert a in js

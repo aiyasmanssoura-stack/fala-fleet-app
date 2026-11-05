@@ -1,0 +1,24 @@
+#pgFleet .ctabs{display:flex;gap:2px;margin:14px 0 14px;border-bottom:1px solid var(--rule);overflow-x:auto}
+#pgFleet .ctab{border:0;background:none;font:inherit;font-weight:600;color:var(--muted);padding:10px 14px;border-bottom:3px solid transparent;cursor:pointer;white-space:nowrap;margin-bottom:-1px}
+#pgFleet .ctab:hover{color:var(--ink)}
+#pgFleet .ctab.on{color:var(--brand);border-bottom-color:var(--brand)}
+#pgFleet .ctab .cn{display:inline-block;background:var(--raise);color:var(--ink2);border-radius:99px;padding:0 7px;font-size:11px;margin-left:4px}
+#pgFleet .ctab .cn.hot{background:var(--crit-w);color:var(--crit-ink)}
+#pgFleet .cgrid{display:grid;grid-template-columns:minmax(0,300px) minmax(0,1fr) minmax(0,270px);gap:14px;align-items:start}
+#pgFleet .ccol{display:flex;flex-direction:column;gap:14px;min-width:0}
+#pgFleet .ccol .panel{margin:0}
+@media (max-width:1180px){#pgFleet .cgrid{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}#pgFleet .cgrid .ccol:nth-child(2){order:-1;grid-column:1/-1}}
+@media (max-width:760px){#pgFleet .cgrid{grid-template-columns:1fr}}
+#pgFleet .ckpis{display:grid;grid-template-columns:repeat(5,1fr);padding:0}
+#pgFleet .ckpi{padding:12px 14px;border-right:1px solid var(--line)}#pgFleet .ckpi:last-child{border:0}
+#pgFleet .ckpi b{display:block;font-size:16px;margin-top:3px}#pgFleet .ckpi b.bad{color:var(--crit)}#pgFleet .ckpi b.warn{color:var(--warn-ink)}
+@media (max-width:760px){#pgFleet .ckpis{grid-template-columns:repeat(2,1fr)}}
+#pgFleet .catt{padding:9px 0;border-bottom:1px solid var(--line)}#pgFleet .catt:last-child{border:0}
+#pgFleet .ckv{display:grid;grid-template-columns:104px minmax(0,1fr);margin-top:0}
+#pgFleet .ckv>div{display:contents}
+#pgFleet .ckv .lbl,#pgFleet .ckv .v{padding:8px 0;border-top:1px solid var(--line)}
+#pgFleet .ckv>div:first-child .lbl,#pgFleet .ckv>div:first-child .v{border-top:0}
+#pgFleet .ckv .lbl{text-transform:none;letter-spacing:0;font-size:12.5px;font-weight:500;color:var(--muted)}
+@media (max-width:1500px){#pgFleet .cgrid{grid-template-columns:minmax(0,300px) minmax(0,1fr)}
+ #pgFleet .cgrid .ccol:nth-child(3){grid-column:1/-1;flex-direction:row;align-items:stretch}
+ #pgFleet .cgrid .ccol:nth-child(3)>.panel{flex:1}}
