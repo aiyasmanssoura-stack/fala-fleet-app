@@ -137,3 +137,7 @@ os.system(f'cp {root}/assets/logo.png {root}/next/assets/logo.png')
 if test:
     open(os.path.join(root, 'next', 'testdata.js'), 'w').write('window.TESTDATA=' + open(test).read() + ';')
 print('next/index.html', len(out) // 1024, 'KB')
+# --live: also publish the same files at the main address (go-live 5 Nov)
+if '--live' in sys.argv:
+    os.system(f'cp -r {root}/next/. {root}/')
+    print('also copied to main address')
