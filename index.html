@@ -4452,8 +4452,18 @@ async function homeExcelRun(){
     if(!ok) bad.push(t);
     readme.push({ Sheet: t, 'What it holds': what, 'Rows in the database': dbn, 'Rows in this sheet': rows.length, Match: ok ? 'yes' : 'NO', Columns: cols.join(', ') });
   }
+  const icons = window.ICONS_DATA || {}, inames = Object.keys(icons).sort();
+  if(inames.length){
+    sheets.push(['drawings', X.utils.json_to_sheet(inames.map(k => ({ drawing: k, picture: icons[k] })), { header: ['drawing', 'picture'] })]);
+    readme.push({ Sheet: 'drawings', 'What it holds': 'The truck drawings used on the cards. "picture" is the PNG as text (data:image/png;base64,...): paste it into a browser address bar to see it, or decode the base64 part to get the file.', 'Rows in the database': '(in the page)', 'Rows in this sheet': inames.length, Match: 'yes', Columns: 'drawing, picture' });
+  }
+  if(typeof CLASS_ART !== 'undefined'){
+    const m = Object.keys(CLASS_ART).map(k => ({ class: k, drawing: CLASS_ART[k] }));
+    sheets.push(['drawing_by_class', X.utils.json_to_sheet(m, { header: ['class', 'drawing'] })]);
+    readme.push({ Sheet: 'drawing_by_class', 'What it holds': 'Which drawing a class uses when its type has no drawing of its own.', 'Rows in the database': '(in the page)', 'Rows in this sheet': m.length, Match: 'yes', Columns: 'class, drawing' });
+  }
   const now = new Date();
-  const head = [{ Sheet: 'READ ME', 'What it holds': 'Full copy of the Fala Fleet App database, made ' + now.toLocaleString('en-GB') + ' by ' + ((window.MYEMAIL) || 'admin') + '. One sheet per table, all columns, original ids kept: columns ending in _id point to the id column of another sheet: vehicle_id = vehicles, driver_id / second_driver_id / person_id = people, pulled_by_id = vehicles, site_id = sites, project_id = projects, paper_type_id = paper_types, supplier_id = suppliers, tyre_id = tyres, hire_terms_id = hire_terms, report_file_id = report_files.' }];
+  const head = [{ Sheet: 'READ ME', 'What it holds': 'Full copy of the Fala Fleet App database, made ' + now.toLocaleString('en-GB') + ' by ' + ((window.MYEMAIL) || 'admin') + '. One sheet per table, all columns, original ids kept, plus the truck drawings: columns ending in _id point to the id column of another sheet: vehicle_id = vehicles, driver_id / second_driver_id / person_id = people, pulled_by_id = vehicles, site_id = sites, project_id = projects, paper_type_id = paper_types, supplier_id = suppliers, tyre_id = tyres, hire_terms_id = hire_terms, report_file_id = report_files.' }];
   X.utils.book_append_sheet(wb, X.utils.json_to_sheet(head.concat([{}], readme), { header: ['Sheet', 'What it holds', 'Rows in the database', 'Rows in this sheet', 'Match', 'Columns'] }), 'Read me');
   sheets.forEach(([t, ws]) => X.utils.book_append_sheet(wb, ws, t));
   if(bad.length) throw new Error('Row counts do not match for: ' + bad.join(', ') + '. File not saved.');
