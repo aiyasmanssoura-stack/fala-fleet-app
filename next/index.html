@@ -943,8 +943,8 @@ footer{color:var(--muted);font-size:11.5px;margin-top:34px;line-height:1.7;max-w
  #pgFleet .cgrid .ccol:nth-child(3){grid-column:1/-1;flex-direction:row;align-items:stretch}
  #pgFleet .cgrid .ccol:nth-child(3)>.panel{flex:1}}
 /* dark mode: the line drawings are navy on dark; lift them */
-:root[data-theme="dark"] #pgFleet img[src^="data:image/png"],:root[data-theme="dark"] #pgHired img[src^="data:image/png"]{filter:brightness(2.4) saturate(1.15)}
-@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) #pgFleet img[src^="data:image/png"],:root:not([data-theme="light"]) #pgHired img[src^="data:image/png"]{filter:brightness(2.4) saturate(1.15)}}
+:root[data-theme="dark"] #pgFleet img[src^="data:image/png"],:root[data-theme="dark"] #pgHired img[src^="data:image/png"]{filter:brightness(3.2) saturate(2.4) contrast(1.15) drop-shadow(0 0 5px rgba(140,200,255,.65))}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) #pgFleet img[src^="data:image/png"],:root:not([data-theme="light"]) #pgHired img[src^="data:image/png"]{filter:brightness(3.2) saturate(2.4) contrast(1.15) drop-shadow(0 0 5px rgba(140,200,255,.65))}}
 </style>
 
 <!-- ======================= THE SHELL =======================
