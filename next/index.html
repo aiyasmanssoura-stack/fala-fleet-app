@@ -4399,6 +4399,19 @@ function renderHome(){
           <td><span class="pill p-ok">${esc(e.kind)}</span></td><td>${esc(e.summary)}</td></tr>`).join('')}</tbody></table></div>`
         : '<p class="sm" style="margin:0">Nothing yet. Changes made with Change driver, Change site, Renew and the history fixes show here.</p>'}</div>`;
   el('homeXl').onclick = homeExcel;
+  homeRefreshLog();
+}
+/* Read the change log again every time Home opens, so changes made by others (or after this page loaded) show up. */
+async function homeRefreshLog(){
+  try{
+    const r = await sb.from('change_log').select('*').order('id',{ascending:false}).limit(500);
+    if(r.error) return;
+    const old = window.APPLOG || [];
+    if(r.data.length !== old.length || (r.data[0] && r.data[0].id) !== (old[0] && old[0].id)){
+      window.APPLOG = r.data;
+      if(el('homeBody')) renderHome();
+    }
+  }catch(e){}
 }
 /* Full backup: one sheet per database table, every column, original ids kept, plus a "Read me" sheet.
    Row counts are checked against the database before the file is saved. */
