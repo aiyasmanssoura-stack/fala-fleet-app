@@ -4272,11 +4272,11 @@ let drawLeads = ()=>{};
       row:v=>[plate(v),esc(v.type),txt(v.driver),txt(v.site)] },
     gps:{ title:'GPS',
       cap:'Vehicles with GPS, by category. Factory-fitted units (UD) are listed apart.',
-      cols:['Plate','Type','Driver','Site'],
+      get cols(){ return ['Plate','Type','Driver','Site'].concat(['admin','editor'].includes(window.MYROLE||'') ? ['Status'] : []); },
       secs:()=>[
         ...groups(OURS.filter(v=>v.gps==='Active'),'GPS active'),
         ...groups(OURS.filter(v=>v.gps==='UD Active'),'UD GPS (factory-fitted)')],
-      row:v=>[plate(v),esc(v.type),txt(v.driver),txt(v.site)] },
+      row:v=>{ const r=[plate(v),esc(v.type),txt(v.driver),txt(v.site)]; if(['admin','editor'].includes(window.MYROLE||'')){ const g=(window.APPGPS||{})[v._id]; r.push(g ? '<span class="pill '+(g.status==='online'?'p-ok':'p-gap')+'">'+(g.status==='online'?'Online':'Offline')+' &middot; '+(g.parking?'parked':(g.speed_kmh>0?'moving':'stopped'))+'</span>' : '<span class="dash">&mdash;</span>'); } return r; } },
     tahseel:{ title:'Tahseel cards and Masar numbers',
       cap:'Sharjah Tahseel card number with the Masar number, per vehicle.',
       cols:['Plate','Type','Tahseel card no.','Masar no.','Site'],

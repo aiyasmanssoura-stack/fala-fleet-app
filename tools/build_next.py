@@ -119,6 +119,14 @@ a = "${v.log && v.log.length ? `<div class=\"panel\">"
 assert a in js
 js = js.replace(a, "${false ? `<div class=\"panel\">", 1)
 assert '</script' not in js
+# GPS list: Status column for editors/admins only (guests never see it)
+g_old = "      cols:['Plate','Type','Driver','Site'],\n      secs:()=>[\n        ...groups(OURS.filter(v=>v.gps==='Active'),'GPS active'),"
+assert g_old in js
+js = js.replace(g_old, "      get cols(){ return ['Plate','Type','Driver','Site'].concat(['admin','editor'].includes(window.MYROLE||'') ? ['Status'] : []); },\n      secs:()=>[\n        ...groups(OURS.filter(v=>v.gps==='Active'),'GPS active'),", 1)
+g_old2 = "...groups(OURS.filter(v=>v.gps==='UD Active'),'UD GPS (factory-fitted)')],\n      row:v=>[plate(v),esc(v.type),txt(v.driver),txt(v.site)] },"
+assert g_old2 in js
+js = js.replace(g_old2, "...groups(OURS.filter(v=>v.gps==='UD Active'),'UD GPS (factory-fitted)')],\n      row:v=>{ const r=[plate(v),esc(v.type),txt(v.driver),txt(v.site)]; if(['admin','editor'].includes(window.MYROLE||'')){ const g=(window.APPGPS||{})[v._id]; r.push(g ? '<span class=\"pill '+(g.status==='online'?'p-ok':'p-gap')+'\">'+(g.status==='online'?'Online':'Offline')+' &middot; '+(g.parking?'parked':(g.speed_kmh>0?'moving':'stopped'))+'</span>' : '<span class=\"dash\">&mdash;</span>'); } return r; } },", 1)
+
 boot = open(os.path.join(here, 'boot.js'), encoding='utf-8').read()
 gate = open(os.path.join(here, 'gate.html'), encoding='utf-8').read()
 os.makedirs(os.path.join(root, 'next'), exist_ok=True)
