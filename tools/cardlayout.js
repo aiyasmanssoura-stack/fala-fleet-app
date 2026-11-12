@@ -5,7 +5,19 @@
      The Refresh button asks the gps-sync function (Admin / Editor) to read the GPS site and save fresh values. */
   function gpsCard(v){
     const g = (window.APPGPS || {})[v._id];
-    if(!g || g.latitude == null) return '';
+    if(!g) return '';
+    if(!CAN_EDIT()){
+      return `<div class="panel gpsbox"><div class="ph"><h3>GPS · ${esc(g.tracker_name||'')}</h3></div>
+      <div class="gpsgrid"><div class="gpsmap" style="display:flex;align-items:center;justify-content:center;text-align:center;padding:14px;border:1px dashed var(--crit)"><b style="color:var(--crit)">&#9873; You do not have authority to check this</b></div>
+        <div>
+          <div class="gpsrow"><div class="lbl">Odometer</div><div class="v"><b>${g.odometer_km==null?'—':NUM.format(Math.round(g.odometer_km))+' km'}</b></div></div>
+          <div class="gpsrow"><div class="lbl">Location</div><div class="v"></div></div>
+          <div class="gpsrow"><div class="lbl">Coordinates</div><div class="v"></div></div>
+          <div class="gpsrow"><div class="lbl">Last GPS fix</div><div class="v"></div></div>
+          <div class="gpsrow"><div class="lbl">Refreshed</div><div class="v"></div></div>
+        </div></div></div>`;
+    }
+    if(g.latitude == null) return '';
     const tz = {timeZone:'Asia/Dubai', day:'2-digit', month:'short', hour:'2-digit', minute:'2-digit', hour12:false};
     const when = x => x ? new Date(x).toLocaleString('en-GB', tz) : '—';
     const on = g.status === 'online';
