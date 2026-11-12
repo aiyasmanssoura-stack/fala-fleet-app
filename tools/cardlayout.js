@@ -1,8 +1,8 @@
   /* ================= NEW CARD LAYOUT (5 Nov 2026) ============================
      Header + tabs. Overview shows everything at a glance in three columns; the
      other tabs reuse the existing panels, so nothing is lost. */
-  /* GPS card (13 Nov 2026, trial on one truck): map, odometer and address from the GPS site.
-     Values are saved by Claude on request, so the card says when they were last refreshed. */
+  /* GPS card (13 Nov 2026): map, odometer and address from the GPS site, in the middle column above Compliance.
+     The Refresh button asks the gps-sync function (Admin / Editor) to read the GPS site and save fresh values. */
   function gpsCard(v){
     const g = (window.APPGPS || {})[v._id];
     if(!g || g.latitude == null) return '';
@@ -11,16 +11,31 @@
     const on = g.status === 'online';
     const move = g.parking ? 'Parked' : (g.speed_kmh > 0 ? 'Moving · ' + Math.round(g.speed_kmh) + ' km/h' : 'Stopped');
     const q = g.latitude + ',' + g.longitude;
-    return `<div class="gpsbox"><div class="ph" style="margin-bottom:8px"><h3>GPS · ${esc(g.tracker_name)}</h3>
+    return `<div class="panel gpsbox"><div class="ph"><h3>GPS · ${esc(g.tracker_name)}</h3>
       <span class="pill ${on?'p-ok':'p-gap'}">${on?'Online':'Offline'}</span><span class="pill p-gap">${esc(move)}${g.ignition===false?' · ignition off':g.ignition?' · ignition on':''}</span></div>
-      <iframe class="gpsmap" loading="lazy" referrerpolicy="no-referrer" title="Truck position" src="https://maps.google.com/maps?q=${q}&z=16&output=embed"></iframe>
-      <div class="gpsrow"><div class="lbl">Odometer</div><div class="v"><b>${g.odometer_km==null?'—':NUM.format(Math.round(g.odometer_km))+' km'}</b></div></div>
-      <div class="gpsrow"><div class="lbl">Location</div><div class="v">${g.address?esc(g.address.replace(/, United Arab Emirates$/,'')):'<span class="dash">no address</span>'}</div></div>
-      <div class="gpsrow"><div class="lbl">Coordinates</div><div class="v mono">${g.latitude.toFixed(5)}, ${g.longitude.toFixed(5)}</div></div>
-      <div class="gpsrow"><div class="lbl">Last GPS fix</div><div class="v">${esc(when(g.fix_time))}</div></div>
-      <div class="gpsrow"><div class="lbl">Refreshed</div><div class="v">${esc(when(g.synced_at))}</div></div>
-      <div class="linkrow"><a class="btn" href="https://www.google.com/maps?q=${q}" target="_blank" rel="noopener">Open in Google Maps</a></div></div>`;
+      <div class="gpsgrid">
+        <iframe class="gpsmap" loading="lazy" referrerpolicy="no-referrer" title="Truck position" src="https://maps.google.com/maps?q=${q}&z=16&output=embed"></iframe>
+        <div>
+          <div class="gpsrow"><div class="lbl">Odometer</div><div class="v"><b>${g.odometer_km==null?'—':NUM.format(Math.round(g.odometer_km))+' km'}</b></div></div>
+          <div class="gpsrow"><div class="lbl">Location</div><div class="v">${g.address?esc(g.address.replace(/, United Arab Emirates$/,'')):'<span class="dash">no address</span>'}</div></div>
+          <div class="gpsrow"><div class="lbl">Coordinates</div><div class="v mono">${g.latitude.toFixed(5)}, ${g.longitude.toFixed(5)}</div></div>
+          <div class="gpsrow"><div class="lbl">Last GPS fix</div><div class="v">${esc(when(g.fix_time))}</div></div>
+          <div class="gpsrow"><div class="lbl">Refreshed</div><div class="v">${esc(when(g.synced_at))}</div></div>
+        </div></div>
+      <div class="linkrow"><a class="btn" href="https://www.google.com/maps?q=${q}" target="_blank" rel="noopener">Open in Google Maps</a>
+        ${CAN_EDIT() ? '<button type="button" class="btn" data-gpsrefresh="1">Refresh</button>' : ''}<span class="sm" id="gpsMsg" style="color:var(--crit)"></span></div></div>`;
   }
+  document.addEventListener('click', async e=>{
+    const b = e.target.closest && e.target.closest('[data-gpsrefresh]'); if(!b) return;
+    const msg = document.getElementById('gpsMsg'); b.disabled = true; b.textContent = 'Refreshing…'; if(msg) msg.textContent = '';
+    try{
+      const r = await sb.functions.invoke('gps-sync');
+      if(r.error){ let t = r.error.message; try{ const j = await r.error.context.json(); if(j && j.error) t = j.error; }catch(_){} throw new Error(t); }
+      const g = await sb.from('gps_positions').select('*'); if(g.error) throw g.error;
+      window.APPGPS = {}; g.data.forEach(x=>{ window.APPGPS[x.vehicle_id] = x; });
+      renderCard(window.__curPlate);
+    }catch(err){ b.disabled = false; b.textContent = 'Refresh'; const m = document.getElementById('gpsMsg'); if(m) m.textContent = err.message || String(err); }
+  });
   function renderCard(plate){
     window.__curPlate = plate;
     const v = V[plate];
@@ -89,7 +104,7 @@
       : '<p class="sm" style="margin:0">No change made in the app yet.</p>'}</div>` : '';
 
     const overview = `<div class="cgrid"><div class="ccol">${assign}${details}</div>
-      <div class="ccol">${strip}${comp}${driverLogPanel(v)}</div><div class="ccol">${attnP}${activity}</div></div>`;
+      <div class="ccol">${strip}${gpsCard(v)}${comp}${driverLogPanel(v)}</div><div class="ccol">${attnP}${activity}</div></div>`;
 
     const coupled = kids.map(k=>`<div class="coupled">
         <div class="cphead"><img class="cpart" src="${ARTFOR(k)}" alt=""><div style="min-width:0">
@@ -119,7 +134,7 @@
 
     el('fCard').innerHTML = `
     <p style="margin:0 0 10px"><a class="btn" data-f="list" data-back="1" data-cls="${esc(v.cls)}">&larr; Back to ${esc(v.cls)}</a></p>
-    <div class="vhead${(window.APPGPS||{})[v._id]?' hasgps':''}">
+    <div class="vhead">
       <div><div class="shot"><img src="${ARTFOR(v)}" alt="${esc(v.type)}"></div></div>
       <div>
         <div class="vtitle"><span class="pl">${esc(v.plate)}</span>${code?`<span class="code">${esc(v.code)}</span>`:''}<span class="pill ${pc}">${ptxt}</span></div>
@@ -137,7 +152,6 @@
         </div>
         <div class="upd ${uk}"><span class="lbl">Last updated</span><b>${esc(uw)}</b><span class="sm">${esc(uy)}</span></div>
       </div>
-      ${gpsCard(v)}
     </div>
     <div class="ctabs" role="tablist">${tabs.map(t=>`<button type="button" role="tab" class="ctab${t.k===cur?' on':''}" data-ctab="${t.k}" aria-selected="${t.k===cur}">${esc(t.t)}${t.n?` <span class="cn${t.hot?' hot':''}">${t.n}</span>`:''}</button>`).join('')}</div>
     ${tabs.map(t=>`<div class="cpane" data-pane="${t.k}"${t.k===cur?'':' hidden'}>${t.h && t.h.trim() ? t.h : none}</div>`).join('')}`;
