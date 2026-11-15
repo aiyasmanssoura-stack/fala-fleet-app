@@ -475,7 +475,7 @@
       const plate = kind === 'none' ? (type.toUpperCase()) : plateW;
       const op = s(t.operator), opw = /Operator Status written as: (.*)$/.exec(s(t.note));
       const dz = s(t.diesel_by), rate = t.monthly_rate === null || t.monthly_rate === undefined ? null : Number(t.monthly_rate);
-      rows.push({ vid: v.id, plate, idkind: kind, dig: plateW.split('/')[0].replace(/\D/g, ''), type, cls: s(v.class) || 'Equipment', firm: sup[t.supplier_id] || '(supplier not stated)', mm: mmz[v.id] || [],
+      rows.push({ vid: v.id, number: s(v.number), make: s(v.make_model), year: v.year == null ? '' : v.year, chassis: s(v.chassis_no), sid: t.supplier_id, start: t.start_date ? iso(t.start_date) : '', end: t.end_date ? iso(t.end_date) : '', plate, idkind: kind, dig: plateW.split('/')[0].replace(/\D/g, ''), type, cls: s(v.class) || 'Equipment', firm: sup[t.supplier_id] || '(supplier not stated)', mm: mmz[v.id] || [],
         drv: s(t.operator_name) === 'NA' ? 'NA' : s(t.operator_name), lpo: s(t.lpo_no), rate, proj: pr.name,
         rawproj: written(pr.note) || pr.name, site: pr.site_id ? site[pr.site_id] : pr.name,
         withDriver: /^with operator/i.test(op), opStatus: op ? op.replace(/\boperator\b/, 'Operator') : (opw ? opw[1] : ''),
