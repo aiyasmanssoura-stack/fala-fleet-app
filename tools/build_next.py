@@ -65,10 +65,17 @@ assert a in js and "${servicePanel(v)}\n    ${accidentPanel(v)}" in js
 EDITJS = open(os.path.join(here, "editdriver.js"), encoding="utf-8").read()
 EDITJS += open(os.path.join(here, "editsite.js"), encoding="utf-8").read()
 EDITJS += open(os.path.join(here, "editpaper.js"), encoding="utf-8").read()
+EDITJS += open(os.path.join(here, "editmachine.js"), encoding="utf-8").read()
 EDITJS += open(os.path.join(here, "edithist.js"), encoding="utf-8").read() + open(os.path.join(here, "back.js"), encoding="utf-8").read()
 o_mc = "      ${svc}\n      ${m.note&&!m.jack"
 assert js.count(o_mc) == 1
 js = js.replace(o_mc, "      ${window.mmPanel ? window.mmPanel(m.mm) : ''}\n" + o_mc, 1)
+o_pp = '      <div class="panel">\n        <div class="ph"><h3>Papers</h3><span class="wtag">the supplier\'s responsibility</span></div>'
+assert js.count(o_pp) == 1
+js = js.replace(o_pp, "      ${window.mdPanelHired ? window.mdPanelHired(m) : ''}\n" + o_pp, 1)
+o_fn = "  function machineCard(plate){"
+assert js.count(o_fn) == 1
+js = js.replace(o_fn, "  window.__machineCard = (p) => machineCard(p);\n" + o_fn, 1)
 js = js.replace(a, DIESEL + EDITJS + a, 1).replace("${servicePanel(v)}\n    ${accidentPanel(v)}", "${servicePanel(v)}\n    ${dieselPanel(v)}\n    ${accidentPanel(v)}", 1)
 o1 = '<span class="note">newest first &middot; the one on it today is at the top</span></div>'
 assert o1 in js

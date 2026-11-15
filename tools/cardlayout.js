@@ -115,7 +115,7 @@
       ? log.map(e=>`<div class="catt"><b>${esc(e.summary.replace(/^[^:]*:\s*/, ''))}</b><div class="sm">${esc(homeWhen(e.at))} · ${esc(homeWho(e.by_email))}</div></div>`).join('')
       : '<p class="sm" style="margin:0">No change made in the app yet.</p>'}</div>` : '';
 
-    const overview = `<div class="cgrid"><div class="ccol">${assign}${details}</div>
+    const overview = `<div class="cgrid"><div class="ccol">${assign}${details}${v.cls === 'Equipment' && window.mdPanelOwn ? window.mdPanelOwn(v) : ''}</div>
       <div class="ccol">${strip}${gpsCard(v)}${comp}${driverLogPanel(v)}</div><div class="ccol">${attnP}${activity}</div></div>`;
 
     const coupled = kids.map(k=>`<div class="coupled">
