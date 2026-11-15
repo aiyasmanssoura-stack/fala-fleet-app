@@ -475,7 +475,7 @@
       const plate = kind === 'none' ? (type.toUpperCase()) : plateW;
       const op = s(t.operator), opw = /Operator Status written as: (.*)$/.exec(s(t.note));
       const dz = s(t.diesel_by), rate = t.monthly_rate === null || t.monthly_rate === undefined ? null : Number(t.monthly_rate);
-      rows.push({ plate, idkind: kind, dig: plateW.split('/')[0].replace(/\D/g, ''), type, cls: s(v.class) || 'Equipment', firm: sup[t.supplier_id] || '(supplier not stated)', mm: mmz[v.id] || [],
+      rows.push({ vid: v.id, plate, idkind: kind, dig: plateW.split('/')[0].replace(/\D/g, ''), type, cls: s(v.class) || 'Equipment', firm: sup[t.supplier_id] || '(supplier not stated)', mm: mmz[v.id] || [],
         drv: s(t.operator_name) === 'NA' ? 'NA' : s(t.operator_name), lpo: s(t.lpo_no), rate, proj: pr.name,
         rawproj: written(pr.note) || pr.name, site: pr.site_id ? site[pr.site_id] : pr.name,
         withDriver: /^with operator/i.test(op), opStatus: op ? op.replace(/\boperator\b/, 'Operator') : (opw ? opw[1] : ''),
@@ -502,7 +502,7 @@
       return { cls, n: ms.length, firms: new Set(ms.map((r) => r.firm)).size, rate: ms.reduce((x, r) => x + (r.rate || 0), 0), art: CLASS_ART[cls] || '',
         dieselOurs: ms.filter((r) => r.dieselOurs).length, projects: [...new Set(ms.map((r) => r.proj))].sort(), types: tally(ms.map((r) => r.type)) }; }).filter(Boolean);
     const bySite = {}; rows.forEach((r) => { bySite[r.site] = (bySite[r.site] || 0) + 1; });
-    return { rows, firms, projects, groups, tally: { n: rows.length, firms: firms.length, projects: projects.length, rate: rows.reduce((x, r) => x + (r.rate || 0), 0),
+    return { rows, firms, projects, groups, tally: { n: new Set(rows.map((r) => r.vid)).size, firms: firms.length, projects: projects.length, rate: rows.reduce((x, r) => x + (r.rate || 0), 0),
       rated: rows.filter((r) => r.rate).length, noLpo: rows.filter((r) => !r.lpo).length, withDriver: rows.filter((r) => r.withDriver).length,
       svcOnUs: rows.filter((r) => !r.svcInc).length, dieselOurs: rows.filter((r) => r.dieselOurs).length },
       dieselBy: tally(rows.map((r) => r.diesel || '(not stated)')), bySite, source: 'RAW DATA — Hired IN', orphanServices: [] };
