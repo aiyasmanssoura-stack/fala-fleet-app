@@ -2584,10 +2584,10 @@ let drawLeads = ()=>{};
         <span class="pill p-ok">${rows.length} month${rows.length>1?'s':''} on record</span>
         <span class="note">${nf.format(Math.round(totL))} L${totH?' \u00b7 '+nf.format(Math.round(totH))+' h':''} in total \u00b7 from the monthly reports</span></div>
       <div class="scroll"><table>
-        <thead><tr><th>Month</th><th>Where</th><th class="n">Litres</th><th class="n">Fuel days</th><th class="n">Last fuel</th><th class="n">Hours</th><th class="n">Working days</th><th class="n">Trips</th><th class="n">L / hour</th></tr></thead>
+        <thead><tr><th>Month</th><th>Project</th><th class="n">Litres</th><th class="n">Fuel days</th><th class="n">Last fuel</th><th class="n">Hours</th><th class="n">Working days</th><th class="n">Trips</th><th class="n">L / hour</th></tr></thead>
         <tbody>${rows.map((r)=>`<tr>
           <td class="id"><b>${e(mon(r.f))}</b></td>
-          <td class="sm">${r.p?e(r.p.replace(/fala\s*yard/gi,'Fala HQ')):'<span class="dash">\u2014</span>'}</td>
+          <td class="sm">${r.p?e(r.p):'<span class="dash">\u2014</span>'}</td>
           <td class="n">${num(r.l,'L')}</td><td class="n">${num(r.fd)}</td><td class="n">${day(r.last)}</td>
           <td class="n">${num(r.h,'h')}</td><td class="n">${num(r.wd)}</td><td class="n">${num(r.tr)}</td>
           <td class="n">${r.h&&r.l?(r.l/r.h).toFixed(1):'<span class="dash">\u2014</span>'}</td></tr>`).join('')}
