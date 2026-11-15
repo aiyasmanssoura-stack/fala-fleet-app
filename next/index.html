@@ -2572,7 +2572,29 @@ let drawLeads = ()=>{};
   }
 
 
+  window.mmPanel = function(rows){
+    rows = rows || []; if(!rows.length) return '';
+    const nf = new Intl.NumberFormat('en-GB'), e = (x)=>String(x==null?'':x).replace(/[&<>"]/g,(c)=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+    const mon = (d)=>new Date(d+'T00:00:00').toLocaleDateString('en-GB',{month:'long',year:'numeric'});
+    const day = (d)=>d?new Date(d+'T00:00:00').toLocaleDateString('en-GB',{day:'numeric',month:'short'}):'<span class="dash">\u2014</span>';
+    const num = (n,u)=>n==null?'<span class="dash">\u2014</span>':nf.format(Math.round(n*10)/10)+(u?'<span class="sm"> '+u+'</span>':'');
+    const totL = rows.reduce((a,r)=>a+(r.l||0),0), totH = rows.reduce((a,r)=>a+(r.h||0),0);
+    return `<div class="panel">
+      <div class="ph"><h3>Diesel and hours</h3>
+        <span class="pill p-ok">${rows.length} month${rows.length>1?'s':''} on record</span>
+        <span class="note">${nf.format(Math.round(totL))} L${totH?' \u00b7 '+nf.format(Math.round(totH))+' h':''} in total \u00b7 from the monthly reports</span></div>
+      <div class="scroll"><table>
+        <thead><tr><th>Month</th><th>Project</th><th class="n">Litres</th><th class="n">Fuel days</th><th class="n">Last fuel</th><th class="n">Hours</th><th class="n">Working days</th><th class="n">Trips</th><th class="n">L / hour</th></tr></thead>
+        <tbody>${rows.map((r)=>`<tr>
+          <td class="id"><b>${e(mon(r.f))}</b></td>
+          <td class="sm">${r.p?e(r.p):'<span class="dash">\u2014</span>'}</td>
+          <td class="n">${num(r.l,'L')}</td><td class="n">${num(r.fd)}</td><td class="n">${day(r.last)}</td>
+          <td class="n">${num(r.h,'h')}</td><td class="n">${num(r.wd)}</td><td class="n">${num(r.tr)}</td>
+          <td class="n">${r.h&&r.l?(r.l/r.h).toFixed(1):'<span class="dash">\u2014</span>'}</td></tr>`).join('')}
+        </tbody></table></div></div>`;
+  };
   function dieselPanel(v){
+    if(v.mm && v.mm.length) return window.mmPanel(v.mm);
     const rows = v.diesel || [];
     if(!rows.length) return '';
     const mon = (d)=>new Date(d+'T00:00:00').toLocaleDateString('en-GB',{month:'long',year:'numeric'});
@@ -4002,6 +4024,7 @@ let drawLeads = ()=>{};
         <p class="sm" style="margin:0">Registration, insurance and permits belong to
         ${esc(m.firm)}. Not tracked here and never in Renewals — nothing for the PRO to chase.</p>
       </div>
+      ${window.mmPanel ? window.mmPanel(m.mm) : ''}
       ${svc}
       ${m.note&&!m.jack?`<div class="panel"><div class="ph"><h3>Note</h3></div>
         <p class="sm" style="margin:0">${esc(m.note)}</p></div>`:''}
@@ -4662,7 +4685,7 @@ async function pull(table) {
 }
 async function start() {
   gmsg('Loading…');
-  const names = ['vehicles', 'people', 'sites', 'paper_types', 'papers', 'log_entries', 'suppliers', 'projects', 'hire_terms', 'hire_postings', 'tyres', 'tyre_moves', 'service_jobs', 'fines', 'report_files', 'diesel_lines', 'board_history'];
+  const names = ['vehicles', 'people', 'sites', 'paper_types', 'papers', 'log_entries', 'suppliers', 'projects', 'hire_terms', 'hire_postings', 'tyres', 'tyre_moves', 'service_jobs', 'fines', 'report_files', 'diesel_lines', 'machine_months', 'board_history'];
   const t = await Promise.all(names.map(pull));
   const db = {}; names.forEach((n, i) => { db[n] = t[i]; });
   const today = new Date(); const pad = n => String(n).padStart(2, '0');

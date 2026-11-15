@@ -52,6 +52,13 @@
     return { byVeh, byPer };
   }
 
+  function mmByVehicle(db) {
+    const out = {};
+    (db.machine_months || []).forEach((x) => { (out[x.vehicle_id] = out[x.vehicle_id] || []).push({ f: iso(x.month), p: s(x.projects), l: x.litres == null ? null : Number(x.litres), fd: x.fuel_days == null ? null : Number(x.fuel_days),
+      last: x.last_fuel ? iso(x.last_fuel) : '', h: x.hours == null ? null : Number(x.hours), wd: x.working_days == null ? null : Number(x.working_days), tr: x.trips == null ? null : Number(x.trips) }); });
+    Object.keys(out).forEach((k) => out[k].sort((a, b) => (a.f < b.f ? 1 : a.f > b.f ? -1 : 0)));
+    return out;
+  }
   function buildF(db, today) {
     const { byVeh, byPer } = indexPapers(db);
     const siteName = {}; db.sites.forEach((x) => { siteName[x.id] = x.name; });
@@ -236,6 +243,9 @@
       (dz[plate] = dz[plate] || []).push({ f: iso(x.from_date), t: iso(x.to_date), p: prjName[x.project_id] || '', l: x.litres == null ? null : Number(x.litres), h: x.hours == null ? null : Number(x.hours) });
     });
     Object.keys(dz).forEach((plate) => { vehicles[plate].diesel = dz[plate].sort((a, b) => (a.f < b.f ? 1 : a.f > b.f ? -1 : 0)); });
+    // monthly diesel + hours per machine from the Jul-Oct reports (machine_months), newest month first
+    const mmz = mmByVehicle(db);
+    Object.keys(vehicles).forEach((plate) => { const id = Object.keys(plateById).find((k) => plateById[k] === plate); if (id && mmz[id]) vehicles[plate].mm = mmz[id]; });
     return { tyreFrom: tFrom, tyreTo: tTo, svcFrom: sFrom, svcTo: sTo };
   }
 
@@ -455,6 +465,7 @@
     const terms = {}; db.hire_terms.forEach((x) => { terms[x.id] = x; });
     const notedTerm = new Set(db.hire_postings.filter((x) => /Written on Hired IN as/.test(s(x.note))).map((x) => x.hire_terms_id));
     const written = (n) => { const m = /Written on Hired IN as "(.*)"/.exec(s(n)); return m ? m[1] : ''; };
+    const mmz = mmByVehicle(db);
     const rows = [];
     db.hire_postings.slice().sort((a, b) => a.id - b.id).forEach((hp) => {
       const t = terms[hp.hire_terms_id], v = t && veh[t.vehicle_id], pr = prj[hp.project_id]; if (!t || !v || !pr) return;
@@ -464,7 +475,7 @@
       const plate = kind === 'none' ? (type.toUpperCase()) : plateW;
       const op = s(t.operator), opw = /Operator Status written as: (.*)$/.exec(s(t.note));
       const dz = s(t.diesel_by), rate = t.monthly_rate === null || t.monthly_rate === undefined ? null : Number(t.monthly_rate);
-      rows.push({ plate, idkind: kind, dig: plateW.split('/')[0].replace(/\D/g, ''), type, cls: s(v.class) || 'Equipment', firm: sup[t.supplier_id] || '',
+      rows.push({ plate, idkind: kind, dig: plateW.split('/')[0].replace(/\D/g, ''), type, cls: s(v.class) || 'Equipment', firm: sup[t.supplier_id] || '(supplier not stated)', mm: mmz[v.id] || [],
         drv: s(t.operator_name) === 'NA' ? 'NA' : s(t.operator_name), lpo: s(t.lpo_no), rate, proj: pr.name,
         rawproj: written(pr.note) || pr.name, site: pr.site_id ? site[pr.site_id] : pr.name,
         withDriver: /^with operator/i.test(op), opStatus: op ? op.replace(/\boperator\b/, 'Operator') : (opw ? opw[1] : ''),
