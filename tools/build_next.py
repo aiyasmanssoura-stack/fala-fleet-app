@@ -153,6 +153,13 @@ SIGNOUT = "document.getElementById('signOutBtn').addEventListener('click', async
 a = "${v.log && v.log.length ? `<div class=\"panel\">"
 assert a in js
 js = js.replace(a, "${false ? `<div class=\"panel\">", 1)
+o_q1 = "      return `<div class=\"qrow${i===qAt?' on':''}\" data-i=\"${i}\" role=\"option\""
+assert js.count(o_q1) == 1
+js = js.replace(o_q1, "      return `<div class=\"qrow${i===qAt?' on':''}\" data-i=\"${i}\" data-hash=\"${(e.kind==='v'?'#v/':e.kind==='h'?'#h/':'#p/') + encodeURIComponent(e.id)}\" role=\"option\"", 1)
+o_q2 = "    if(row) { e.preventDefault(); qOpen(qHits[+row.dataset.i]); }"
+assert js.count(o_q2) == 1
+js = js.replace(o_q2, "    if(row) { e.preventDefault(); if(e.button !== 0 || e.ctrlKey || e.metaKey) return; qOpen(qHits[+row.dataset.i]); }", 1)
+js += open(os.path.join(here, "newtab.js"), encoding="utf-8").read()
 assert '</script' not in js
 # GPS list: Status column for editors/admins only (guests never see it)
 g_old = "      cols:['Plate','Type','Driver','Site'],\n      secs:()=>[\n        ...groups(OURS.filter(v=>v.gps==='Active'),'GPS active'),"
