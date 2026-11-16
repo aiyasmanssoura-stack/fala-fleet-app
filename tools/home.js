@@ -20,13 +20,14 @@ function renderHome(){
         ${last ? `<b>${esc(homeWhen(last.at))}</b> <span class="sm">by ${esc(homeWho(last.by_email))}</span>` : '<span class="sm">no change made in the app yet</span>'}</div>
       <button type="button" class="btn" id="homeXl" style="background:var(--navy,#16315c);color:#fff">Download Excel</button>
     </div>
+    ${homeRequests(true)}
     <div class="tiles">
       ${tile('Vehicles in fleet', inFleet, 'our own, on the register')}
       ${tile('On Renewals', renewFlagged, 'expired or inside their window')}
       ${tile('Fines', FINES.tally.n, 'on record')}
       ${tile('Changes in the log', log.length, log.length >= 500 ? 'latest 500 shown' : 'made in the app')}
     </div>
-    ${homeRequests()}
+    ${homeRequests(false)}
     <div style="margin-top:18px"><div style="display:flex;align-items:baseline;gap:12px;margin-bottom:8px"><h3 style="margin:0;font-size:17px">Change log</h3>
       <span class="sm">everything changed in the app, newest first · Admin only</span></div>
       ${log.length ? `<div class="scroll"><table><thead><tr><th>When</th><th>Who</th><th>Type</th><th>What</th></tr></thead>
@@ -146,12 +147,14 @@ el('tabHome').onclick = ()=>{ location.hash='#home'; show('home', true); renderH
 
 
 /* Requests waiting for the Admin: an Editor asked to change a plate / asset no., engine no. or Registered to. */
-function homeRequests(){
+function homeRequests(top){
   const FN = {number:'Plate or asset no.', engine_no:'Engine no.', owner:'Registered to'};
   const p = (window.APPREQ || []).filter(r => r.status === 'pending');
   const plateOf = vid => { const v = Object.values(F.vehicles).find(x => x._id === vid); if(v) return v.plate; const m = ((typeof HIRE !== 'undefined' && HIRE.rows) || []).find(x => x.vid === vid); return m ? m.plate : 'vehicle ' + vid; };
+  if(top && !p.length) return '';
+  if(!top && p.length) return '';
   if(!p.length) return '<div style="margin-top:18px"><h3 style="margin:0 0 6px;font-size:17px">Requests waiting</h3><p class="sm" style="margin:0">Nothing is waiting for your approval.</p></div>';
-  return `<div style="margin-top:18px"><h3 style="margin:0 0 8px;font-size:17px">Requests waiting <span class="pill p-warn">${p.length}</span></h3>
+  return `<div style="margin:0 0 18px;border:1px solid var(--warn,#d9a441);background:var(--soft,#f4f2ec);border-radius:12px;padding:14px 16px"><h3 style="margin:0 0 8px;font-size:17px">Waiting for your approval <span class="pill p-warn">${p.length}</span></h3>
     <div class="scroll"><table><thead><tr><th>Vehicle</th><th>What</th><th>Old</th><th>New</th><th>Asked by</th><th>Reason</th><th></th></tr></thead><tbody>
     ${p.map(r => `<tr><td><b>${esc(plateOf(r.vehicle_id))}</b></td><td>${esc(FN[r.field] || r.field)}</td><td class="sm">${esc(r.old_value || 'empty')}</td><td><b>${esc(r.new_value || 'empty')}</b></td>
       <td class="sm">${esc(homeWho(r.requested_email))}<br>${esc(homeWhen(r.requested_at))}</td><td class="sm">${esc(r.reason || '')}</td>
@@ -165,6 +168,13 @@ document.addEventListener('click', async e => {
   const { error } = await sb.rpc('decide_machine_request', { p_id: +b.dataset.mreq, p_approve: b.dataset.ok === '1', p_note: null });
   if(error){ b.disabled = false; if(msg) msg.textContent = error.message; return; }
   const q = await sb.from('machine_change_requests').select('*').order('id', { ascending: false }).limit(300); if(!q.error) window.APPREQ = q.data;
-  renderHome(); homeRefreshLog();
+  homeBadge(); renderHome(); homeRefreshLog();
   const m2 = document.getElementById('mreqMsg'); if(m2){ m2.style.color = '#1d6b3f'; m2.textContent = (b.dataset.ok === '1' ? 'Approved. ' : 'Rejected. ') + 'Refresh the page to see an approved change on the cards and lists.'; }
 });
+
+/* number badge on the Home button = requests waiting for the Admin */
+function homeBadge(){
+  const n = (window.APPREQ || []).filter(r => r.status === 'pending').length, c = document.getElementById('cntHome');
+  if(c) c.textContent = (window.MYROLE === 'admin' && n) ? n : '';
+}
+homeBadge();

@@ -117,7 +117,7 @@ assert js.count(o12) == 1
 js = js.replace(o12, "  if((h === '' || h === 'home') && window.MYROLE === 'admin'){ show('home', false); renderHome(); return; }\n" + o12, 1)
 o13 = '<nav class="rail" role="tablist" aria-label="Sections">'
 assert head.count(o13) == 1
-head = head.replace(o13, o13 + '\n    <button role="tab" id="tabHome" aria-selected="false" aria-controls="pgHome" style="display:none">\n      <svg viewBox="0 0 17 17" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 8 8.5 3 14.5 8M4 7v7h9V7"/></svg>\n      Home</button>', 1)
+head = head.replace(o13, o13 + '\n    <button role="tab" id="tabHome" aria-selected="false" aria-controls="pgHome" style="display:none">\n      <svg viewBox="0 0 17 17" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 8 8.5 3 14.5 8M4 7v7h9V7"/></svg>\n      Home <span class="cnt hot" id="cntHome"></span></button>', 1)
 o14 = '<section id="pgFleet" role="tabpanel">'
 assert head.count(o14) == 1
 head = head.replace(o14, '<section id="pgHome" role="tabpanel" hidden><div id="homeBody"></div></section>\n\n' + o14, 1)
