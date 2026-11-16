@@ -964,6 +964,7 @@ footer{color:var(--muted);font-size:11.5px;margin-top:34px;line-height:1.7;max-w
 #pgFleet .gpsrow:first-child{border-top:0;padding-top:0}
 #pgFleet .gpsrow .lbl{text-transform:none;letter-spacing:0;font-size:12.5px;font-weight:500;color:var(--muted)}
 #pgFleet .gpsbox .linkrow{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:12px}
+#pgRenew a.rlink{color:inherit;text-decoration:none;cursor:pointer}#pgRenew a.rlink:hover{text-decoration:underline}
 </style>
 
 <!-- ======================= THE SHELL =======================
@@ -1092,12 +1093,6 @@ footer{color:var(--muted);font-size:11.5px;margin-top:34px;line-height:1.7;max-w
   <h2>Still to fill in</h2>
   <p class="cap" id="openCap"></p>
   <div id="openBox"></div>
-
-  <h2>Renewal runs</h2>
-  <p class="cap">Dates where three or more fall due together, over the next twelve months.</p>
-  <div class="scroll"><table>
-    <thead><tr><th>Date</th><th>In</th><th>Items</th><th>What</th><th>Which</th></tr></thead>
-    <tbody id="runsBody"></tbody></table></div>
 
   <h2>The year ahead</h2>
   <p class="cap">Where the work lands. Plan around the peaks, not the next thirty days.</p>
@@ -1390,12 +1385,7 @@ let renewFlagged = 0;
       }).join('') + `</tbody></table></div>`
     : `<div class="empty">Nothing outstanding.</div>`;
 
-  el('runsBody').innerHTML = D.runs.map(r=>{
-    const dd=until(r.date);
-    return `<tr><td class="n id">${fmt.format(parse(r.date))}</td>
-      <td class="n">${dd<0?`${-dd}d ago`:`${dd}d`}</td><td class="n"><b>${r.n}</b></td>
-      <td>${esc(r.what)}</td><td class="sm">${esc(r.who.join(', '))}</td></tr>`;
-  }).join('');
+
 
   const mx = Math.max(...D.mon.map(m=>m[1]));
   el('months').innerHTML = D.mon.map(([m,n])=>{
@@ -1451,7 +1441,7 @@ let renewFlagged = 0;
                 : (i.d<0?`${-i.d}d ago`:(i.d===0?'today':`${i.d}d`));
       const rowk = i.st==='e'?'r-crit':(i.st==='so'?'r-warn':'');
       return `<tr class="${rowk}">
-        <td class="id">${esc(i.s)}${i.who?`<div class="sm">${esc(i.who)}</div>`:''}</td>
+        <td class="id"><a class="rlink" data-f="${i.k==='v'?'card':'person'}" ${i.k==='v'?'data-plate':'data-name'}="${esc(i.s)}">${esc(i.s)}</a>${i.who?`<div class="sm">${i.wk?`<a class="rlink" data-f="person" data-name="${esc(i.who)}">${esc(i.who)}</a>`:esc(i.who)}</div>`:''}</td>
         <td>${esc(i.c)}${i.txt?`<div class="sm">${esc(i.txt)}</div>`:''}</td>
         <td>${i.site?`<span class="chip">${esc(i.site)}</span>`:'<span class="sm">—</span>'}</td>
         <td class="n">${i.e?fmt.format(parse(i.e)):'<span class="dash">—</span>'}</td>
@@ -4856,6 +4846,8 @@ addEventListener('load', ()=>requestAnimationFrame(drawLeads));
   addEventListener('keydown', e => { if(e.key === 'Escape') closeMenu(); });
   addEventListener('scroll', closeMenu, true);
 })();
+
+document.addEventListener('click', e => { const a = e.target.closest && e.target.closest('#pgRenew a.rlink'); if(!a || e.ctrlKey || e.metaKey || e.button !== 0) return; e.preventDefault(); location.hash = a.dataset.plate ? '#v/' + encodeURIComponent(a.dataset.plate) : '#p/' + encodeURIComponent(a.dataset.name); scrollTo({top:0}); });
 
 </script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>

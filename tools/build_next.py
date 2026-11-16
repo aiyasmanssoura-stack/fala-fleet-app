@@ -160,6 +160,24 @@ o_q2 = "    if(row) { e.preventDefault(); qOpen(qHits[+row.dataset.i]); }"
 assert js.count(o_q2) == 1
 js = js.replace(o_q2, "    if(row) { e.preventDefault(); if(e.button !== 0 || e.ctrlKey || e.metaKey) return; qOpen(qHits[+row.dataset.i]); }", 1)
 js += open(os.path.join(here, "newtab.js"), encoding="utf-8").read()
+o_r1 = '''  <h2>Renewal runs</h2>
+  <p class="cap">Dates where three or more fall due together, over the next twelve months.</p>
+  <div class="scroll"><table>
+    <thead><tr><th>Date</th><th>In</th><th>Items</th><th>What</th><th>Which</th></tr></thead>
+    <tbody id="runsBody"></tbody></table></div>
+
+'''
+assert head.count(o_r1) == 1
+head = head.replace(o_r1, "", 1)
+o_r2 = "  el('runsBody').innerHTML = D.runs.map(r=>{"
+assert js.count(o_r2) == 1
+i0 = js.index(o_r2); i1 = js.index("}).join('');", i0) + len("}).join('');")
+js = js[:i0] + js[i1:]
+o_r3 = "        <td class=\"id\">${esc(i.s)}${i.who?`<div class=\"sm\">${esc(i.who)}</div>`:''}</td>"
+assert js.count(o_r3) == 1
+js = js.replace(o_r3, "        <td class=\"id\"><a class=\"rlink\" data-f=\"${i.k==='v'?'card':'person'}\" ${i.k==='v'?'data-plate':'data-name'}=\"${esc(i.s)}\">${esc(i.s)}</a>${i.who?`<div class=\"sm\">${i.wk?`<a class=\"rlink\" data-f=\"person\" data-name=\"${esc(i.who)}\">${esc(i.who)}</a>`:esc(i.who)}</div>`:''}</td>", 1)
+head = head[:head.rfind("</style>")] + "#pgRenew a.rlink{color:inherit;text-decoration:none;cursor:pointer}#pgRenew a.rlink:hover{text-decoration:underline}\n" + head[head.rfind("</style>"):]
+js += "\ndocument.addEventListener('click', e => { const a = e.target.closest && e.target.closest('#pgRenew a.rlink'); if(!a || e.ctrlKey || e.metaKey || e.button !== 0) return; e.preventDefault(); location.hash = a.dataset.plate ? '#v/' + encodeURIComponent(a.dataset.plate) : '#p/' + encodeURIComponent(a.dataset.name); scrollTo({top:0}); });\n"
 assert '</script' not in js
 # GPS list: Status column for editors/admins only (guests never see it)
 g_old = "      cols:['Plate','Type','Driver','Site'],\n      secs:()=>[\n        ...groups(OURS.filter(v=>v.gps==='Active'),'GPS active'),"

@@ -298,7 +298,7 @@
         if (c.st === 'note' && /^(NA|N\/A|NO)$/i.test(c.v)) c = { st: 'na', v: 'NA' };
         if (c.st === 'na') { na++; return; }
         const site = sheet === 'V' ? r._yard : personSite(subj), who = sheet === 'V' ? r.driver : '';
-        const base = { c: name, s: String(subj), thr, site: String(site || ''), who: String(who || ''), sect };
+        const base = { c: name, s: String(subj), thr, site: String(site || ''), who: String(who || ''), sect, k: sheet === 'V' ? 'v' : 'p', wk: sheet === 'V' && who && F.persons[who] ? 1 : 0 };
         if (opt === true) base.seas = 1;
         if (c.st === 'task') { task++; notes.push({ s: String(subj), c: name, kind: 'task', txt: c.v }); items.push(Object.assign({}, base, { st: 'task', txt: c.v })); return; }
         if (c.st === 'note') { note++; notes.push({ s: String(subj), c: name, kind: 'note', txt: c.v }); items.push(Object.assign({}, base, { st: 'note', txt: c.v })); return; }
