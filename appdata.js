@@ -152,7 +152,7 @@
         'Start / Leave': iso(p.status === 'Left' ? (p.left_date || p.start_date) : p.start_date),
         'Licence Expiry': pc('Driver Licence'), 'Diesel Tanker Permit (DCDD)': pc('Diesel Tanker Permit (DCDD)'),
         'Landside Gate Pass': pc('Landside Gate Pass'), 'Leave note': s(p.leave_note),
-        'Leave from': iso(p.leave_from), 'Leave to': iso(p.leave_to), 'Airside Driving Permit': pc('Airside Driving Permit')
+        'Left date': iso(p.left_date), 'Note': s(p.note), 'Leave from': iso(p.leave_from), 'Leave to': iso(p.leave_to), 'Airside Driving Permit': pc('Airside Driving Permit')
       };
     });
     // person-level Landside Gate Pass shares its name with the vehicle one: pick the person's
