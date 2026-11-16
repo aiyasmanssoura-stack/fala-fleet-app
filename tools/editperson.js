@@ -92,5 +92,5 @@
   }
   document.addEventListener('click', e => { if(e.target.closest && e.target.closest('#uAddBtn')) openPersonAdd(); });
   (function showAdd(n){ const h = document.getElementById('uAdd'); if(!h) return;
-    if((window.MYROLE||'') === 'admin'){ h.innerHTML = '<button type="button" class="btn" id="uAddBtn" style="margin:2px 0 14px">+ Add driver / operator</button>'; }
+    if((window.MYROLE||'') === 'admin'){ h.innerHTML = '<button type="button" class="btn" id="uAddBtn" style="margin:2px 0 14px;background:var(--navy,#16315c);color:#fff">+ Add driver / operator</button>'; }
     else if(window.MYROLE === undefined && n < 40) setTimeout(() => showAdd(n + 1), 500); })(0);

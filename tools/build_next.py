@@ -69,6 +69,7 @@ EDITJS += open(os.path.join(here, "editmachine.js"), encoding="utf-8").read()
 EDITJS += open(os.path.join(here, "editpperson.js"), encoding="utf-8").read()
 EDITJS += open(os.path.join(here, "hiredback.js"), encoding="utf-8").read()
 EDITJS += open(os.path.join(here, "editperson.js"), encoding="utf-8").read()
+EDITJS += open(os.path.join(here, "addvehicle.js"), encoding="utf-8").read()
 EDITJS += open(os.path.join(here, "edithist.js"), encoding="utf-8").read() + open(os.path.join(here, "back.js"), encoding="utf-8").read()
 o_ix = "      pill:'Hired in' }))),\n  ];"
 assert js.count(o_ix) == 1
@@ -199,6 +200,9 @@ js = js.replace(o_na, o_na + "\n      ${window.paddBtns ? window.paddBtns(name, 
 o_ua = '<h2>The team by what they run</h2>'
 assert head.count(o_ua) == 1
 head = head.replace(o_ua, '<div id="uAdd"></div>' + o_ua, 1)
+o_va = '<h2>The fleet by category</h2>'
+assert head.count(o_va) == 1
+head = head.replace(o_va, '<div id="vAdd"></div>' + o_va, 1)
 assert '</script' not in js
 # GPS list: Status column for editors/admins only (guests never see it)
 g_old = "      cols:['Plate','Type','Driver','Site'],\n      secs:()=>[\n        ...groups(OURS.filter(v=>v.gps==='Active'),'GPS active'),"
