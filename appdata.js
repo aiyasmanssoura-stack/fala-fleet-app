@@ -255,6 +255,7 @@
   const SECTIONS = [['reg', 'Registration', 'Vehicle registration.'], ['ins', 'Insurance', 'Vehicle insurance.'],
     ['permit', 'Permits', 'Fujaira and FNRC.'], ['gate', 'Gate passes', 'Landside, for the airport.'],
     ['licence', 'Driver licence', 'Road licences.'],
+    ['other', 'Other documents', 'Diesel Tanker Permit (DCDD).'],
     ['airside', 'Airside — hand back or renew', 'Seasonal. These expire because the season closes, not because anyone is late.']];
   // name, V/P, field, warn days, group, optional, section
   const RCATS = [
@@ -265,7 +266,8 @@
     ['FNRC WB ticket', 'V', 'FNRC WB tag', 30, 'Permission', false, 'permit'],
     ['Driver licence', 'P', 'Licence Expiry', 30, 'Driver licence', false, 'licence'],
     ['Driver landside', 'P', 'Landside Gate Pass', 10, 'Landside gate pass — driver', 'site', 'gate'],
-    ['Airside driving permit', 'P', 'Airside Driving Permit', 30, 'Permission', true, 'airside']];
+    ['Airside driving permit', 'P', 'Airside Driving Permit', 30, 'Permission', true, 'airside'],
+    ['Other documents', 'P', 'Diesel Tanker Permit (DCDD)', 30, 'Other documents', false, 'other']];
   const dnum = (a) => { const p = a.split('-'); return Date.UTC(+p[0], +p[1] - 1, +p[2]) / 86400000; };
   // a text cell from a person row, read the same way a vehicle paper is
   function textCell(v) {
