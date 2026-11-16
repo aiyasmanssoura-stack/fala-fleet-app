@@ -193,6 +193,12 @@ js = js.replace(o_hb, "      the rest.</p></div>` : '';\n    if(window.hiredBack
 o_pe = "          ${p.Site?`<span class=\"pill p-gap\">${esc(p.Site)}</span>`:''}\n"
 assert js.count(o_pe) == 1
 js = js.replace(o_pe, o_pe + "          ${window.pedBtn ? window.pedBtn(name) : ''}\n", 1)
+o_na = "        ${na.map(esc).join(' \u00b7 ')}.</p>`:''}"
+assert js.count(o_na) == 1
+js = js.replace(o_na, o_na + "\n      ${window.paddBtns ? window.paddBtns(name, na) : ''}", 1)
+o_ua = '<h2>The team by what they run</h2>'
+assert head.count(o_ua) == 1
+head = head.replace(o_ua, '<div id="uAdd"></div>' + o_ua, 1)
 assert '</script' not in js
 # GPS list: Status column for editors/admins only (guests never see it)
 g_old = "      cols:['Plate','Type','Driver','Site'],\n      secs:()=>[\n        ...groups(OURS.filter(v=>v.gps==='Active'),'GPS active'),"

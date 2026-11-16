@@ -51,3 +51,46 @@
     };
   }
   document.addEventListener('click', e => { const b = e.target.closest && e.target.closest('[data-ped]'); if(b) openPersonEdit(b.dataset.ped); });
+
+  /* ---- Add a driver / operator (admin) ---- */
+  function openPersonAdd(){
+    if(document.getElementById('chgDlg')) return;
+    const el2 = document.createElement('div'); el2.id = 'chgDlg';
+    el2.style.cssText = 'position:fixed;inset:0;background:rgba(20,30,50,.45);z-index:1000;display:flex;align-items:center;justify-content:center;padding:16px;overflow:auto';
+    const fld = 'font:inherit;padding:11px 12px;border:1px solid var(--line,#c9c6bb);border-radius:8px;min-height:44px;box-sizing:border-box;width:100%;background:var(--card,#fff);color:inherit';
+    const lab = 'display:block;font-weight:600;font-size:13px;margin-bottom:5px';
+    const uniq = k => [...new Set(Object.values(D.persons).map(x => (x[k]||'').trim()).filter(Boolean))].sort();
+    const f = (id, l, t, list) => `<div><label for="${id}" style="${lab}">${l}</label><input id="${id}" type="${t||'text'}" ${list?`list="${id}L"`:''} style="${fld}">${list?`<datalist id="${id}L">${list.map(x=>`<option value="${esc(x)}">`).join('')}</datalist>`:''}</div>`;
+    el2.innerHTML = `<div role="dialog" aria-modal="true" style="width:min(560px,100%);background:var(--card,#fff);color:var(--ink,inherit);border-radius:16px;border:1px solid var(--line,#d9d6cc);padding:24px 26px;box-sizing:border-box;display:flex;flex-direction:column;gap:14px;max-height:92vh;overflow:auto">
+      <div><div class="sm" style="letter-spacing:.08em;text-transform:uppercase;font-weight:600">Add driver / operator</div>
+        <h2 style="margin:4px 0 0;font-size:22px">New person</h2></div>
+      ${f('paName','Name as on the passport')}
+      <div><label for="paSec" style="${lab}">Group</label><select id="paSec" style="${fld}"><option value="Drivers">Drivers</option><option value="Operators">Operators</option><option value="Staff">Staff</option></select></div>
+      ${f('paRole','Role (choose or type)','text',uniq('Role'))}${f('paEmp','Employer','text',uniq('Employer'))}
+      ${f('paNo','Employee no. (optional)')}${f('paCode','Code (optional)')}${f('paStart','Start date (optional)','date')}${f('paNote','Note (optional)')}
+      <div id="chgErr" role="alert" style="color:#b3261e;font-size:13px;min-height:18px"></div>
+      <div style="display:flex;gap:10px;justify-content:flex-end"><button type="button" class="btn" id="chgX">Cancel</button>
+        <button type="button" class="btn" id="chgOk" style="background:var(--navy,#16315c);color:#fff">Add</button></div></div>`;
+    document.body.appendChild(el2);
+    const $ = id => document.getElementById(id), close = () => el2.remove(), nv = id => $(id).value.trim() || null;
+    el2.addEventListener('click', e => { if(e.target === el2) close(); }); $('chgX').onclick = close; $('paName').focus();
+    $('chgOk').onclick = async () => {
+      const btn = $('chgOk'), err = $('chgErr'); btn.disabled = true; btn.textContent = 'Adding…'; err.textContent = '';
+      const { data, error } = await sb.rpc('add_person', { p_name: $('paName').value, p_section: $('paSec').value, p_role: $('paRole').value, p_employer: nv('paEmp'),
+        p_emp: nv('paNo'), p_code: nv('paCode'), p_start: nv('paStart'), p_note: nv('paNote') });
+      if(error){ err.textContent = error.message; btn.disabled = false; btn.textContent = 'Add'; return; }
+      const nm = data.name;
+      D.persons[nm] = { _id: data.id, 'Name (as per passport)': nm, 'Code': $('paCode').value.trim(), 'Role': $('paRole').value.trim(), 'Status': 'Active',
+        'Fala Employee No': $('paNo').value.trim(), 'Employer': $('paEmp').value.trim(), 'Start / Leave': $('paStart').value, 'Licence Expiry': '', 'Diesel Tanker Permit (DCDD)': '',
+        'Landside Gate Pass': '', 'Leave note': '', 'Left date': '', 'Note': $('paNote').value.trim(), 'Leave from': '', 'Leave to': '', 'Airside Driving Permit': '' };
+      close(); location.hash = '#p/' + encodeURIComponent(nm);
+      setTimeout(() => { const host = el('fPerson'); if(host){ const n = document.createElement('div'); n.setAttribute('role', 'status');
+        n.style.cssText = 'background:#e6f4ec;border:1px solid #b9dfc8;color:#1d6b3f;border-radius:10px;padding:11px 14px;font-size:14px;font-weight:500;margin-bottom:12px';
+        n.textContent = `Saved. ${nm} is added. Add his papers below, and set his vehicle with Change driver on the vehicle. The Drivers lists show him after you refresh the page.`;
+        host.insertBefore(n, host.firstChild); } }, 150);
+    };
+  }
+  document.addEventListener('click', e => { if(e.target.closest && e.target.closest('#uAddBtn')) openPersonAdd(); });
+  (function showAdd(n){ const h = document.getElementById('uAdd'); if(!h) return;
+    if((window.MYROLE||'') === 'admin'){ h.innerHTML = '<button type="button" class="btn" id="uAddBtn" style="margin:2px 0 14px">+ Add driver / operator</button>'; }
+    else if(window.MYROLE === undefined && n < 40) setTimeout(() => showAdd(n + 1), 500); })(0);

@@ -5,6 +5,8 @@
   const PTYPE_NAME = {'Licence Expiry':'Driver Licence'};
   window.prenewBtn = (p, k) => (CAN_EDIT() && p._id)
     ? `<button type="button" class="btn" data-pn="${esc(p['Name (as per passport)'])}" data-pk="${esc(k)}" style="margin-top:8px;padding:6px 12px;min-height:32px;font-size:13px">Renew</button>` : '';
+  window.paddBtns = (name, na) => { const p = D.persons[name]; if(!(CAN_EDIT() && p && p._id && na && na.length)) return '';
+    return `<div style="display:flex;gap:7px;flex-wrap:wrap;margin-top:9px">${na.map(k => `<button type="button" class="btn" data-pn="${esc(name)}" data-pk="${esc(k)}" style="padding:6px 12px;min-height:32px;font-size:13px">Add ${esc(k)}</button>`).join('')}</div>`; };
   function openPersonRenew(name, k){
     const p = D.persons[name]; if(!p || document.getElementById('chgDlg')) return;
     const tn = PTYPE_NAME[k] || k;
@@ -17,7 +19,7 @@
     if(cur.length === 10 && cur[4] === '-'){ const l = until(cur); now = `Now expires: <b>${fmt.format(parse(cur))}</b> · ${l < 0 ? 'expired ' + (-l) + ' days ago' : l + ' days left'}`; }
     const nxt = (() => { const t = new Date(); t.setFullYear(t.getFullYear() + 1); const z = n => String(n).padStart(2, '0'); return `${t.getFullYear()}-${z(t.getMonth()+1)}-${z(t.getDate())}`; })();
     el2.innerHTML = `<div role="dialog" aria-modal="true" style="width:min(560px,100%);background:var(--card,#fff);color:var(--ink,inherit);border-radius:16px;border:1px solid var(--line,#d9d6cc);padding:24px 26px;box-sizing:border-box;display:flex;flex-direction:column;gap:14px">
-      <div><div class="sm" style="letter-spacing:.08em;text-transform:uppercase;font-weight:600">Renew paper</div>
+      <div><div class="sm" style="letter-spacing:.08em;text-transform:uppercase;font-weight:600">${cur.length === 10 && cur[4] === '-' ? 'Renew paper' : 'Add paper'}</div>
         <h2 style="margin:4px 0 0;font-size:22px">${esc(name)} <span class="sm" style="font-weight:400">· ${esc(k)}</span></h2></div>
       <div class="sm" style="background:var(--soft,#f4f2ec);border-radius:10px;padding:11px 13px">${now}</div>
       <div><label for="chgS" style="${lab}">New expiry date</label><input id="chgS" type="date" value="${nxt}" style="${fld}"></div>
