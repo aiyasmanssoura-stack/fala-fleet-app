@@ -67,6 +67,9 @@ EDITJS += open(os.path.join(here, "editsite.js"), encoding="utf-8").read()
 EDITJS += open(os.path.join(here, "editpaper.js"), encoding="utf-8").read()
 EDITJS += open(os.path.join(here, "editmachine.js"), encoding="utf-8").read()
 EDITJS += open(os.path.join(here, "edithist.js"), encoding="utf-8").read() + open(os.path.join(here, "back.js"), encoding="utf-8").read()
+o_ix = "      pill:'Hired in' }))),\n  ];"
+assert js.count(o_ix) == 1
+js = js.replace(o_ix, "      pill:'Hired in' }))),\n    ...((window.APPOLDNUMS || []).map(o => ({ kind:o.kind, id:o.cur, name:o.cur, cls:o.cls, meta:'Old number ' + o.old + ', changed on ' + o.when + ' \\u00b7 now ' + o.cur, hay:norm(o.old), pill:'Old number' }))),\n  ];", 1)
 o_mc = "      ${svc}\n      ${m.note&&!m.jack"
 assert js.count(o_mc) == 1
 js = js.replace(o_mc, "      ${window.mmPanel ? window.mmPanel(m.mm) : ''}\n" + o_mc, 1)

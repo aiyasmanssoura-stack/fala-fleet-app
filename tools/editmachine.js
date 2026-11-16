@@ -15,7 +15,11 @@
         ${cell('Serial / chassis no.', f.chassis)}${cell('Plate or asset no.', f.number)}${cell('Engine no.', f.engine)}${cell('Registered to', f.owner)}
         ${hired ? cell('Supplier', f.firm) + cell('LPO no.', f.lpo) + cell('Monthly rate', f.rate != null && f.rate !== '' ? 'AED ' + Number(f.rate).toLocaleString('en-GB') : '')
           + cell('Operator', f.op) + cell('Hire start', mdD(f.start)) + cell('Hire end', mdD(f.end), 'still hired') : ''}
-      </div>${mdPending(key)}</div>`;
+      </div>${mdOld(key)}${mdPending(key)}</div>`;
+  }
+  function mdOld(vid){
+    const a = (window.APPOLDBYVEH || {})[vid]; if(!a || !a.length) return '';
+    return `<div class="sm" style="margin-top:10px">Previous numbers: ${a.map(x => `<b>${mdE(x.old)}</b> (until ${mdE(x.when)})`).join(', ')}</div>`;
   }
   function mdPending(vid){
     const FN = {number:'Plate or asset no.', engine_no:'Engine no.', owner:'Registered to'};
