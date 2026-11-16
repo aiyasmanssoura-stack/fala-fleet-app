@@ -35,6 +35,7 @@ async function start() {
     else { const r = ((window.APPDATA.HIRE || {}).rows || []).find((x) => x.vid === v.id); if (r) window.APPOLDNUMS.push({ kind: 'h', cur: r.plate, cls: r.cls, old: o.old_number, when }); }
   });
   window.APPREQ = [];
+  window.APPPTYPES = {}; (db.paper_types || []).filter((t) => t.applies_to === 'person').forEach((t) => { window.APPPTYPES[t.name] = t.id; });
   try { const q = await sb.from('machine_change_requests').select('*').order('id', { ascending: false }).limit(300); if (!q.error) window.APPREQ = q.data; } catch (e) {}
   window.APPGPS = {};
   try { const g = await sb.from(['admin','editor'].includes(window.MYROLE||'') ? 'gps_positions' : 'gps_odometer').select('*'); if (!g.error) g.data.forEach(r => { window.APPGPS[r.vehicle_id] = r; }); } catch (e) {}

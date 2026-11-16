@@ -147,7 +147,7 @@
       const pa = byPer[p.id] || {};
       const pc = (n) => cell(pa[n]).v;
       persons[p.passport_name] = {
-        'Name (as per passport)': p.passport_name, 'Code': s(p.code), 'Role': s(p.role), 'Status': s(p.status),
+        _id: p.id, 'Name (as per passport)': p.passport_name, 'Code': s(p.code), 'Role': s(p.role), 'Status': s(p.status),
         'Fala Employee No': s(p.employee_no), 'Employer': s(p.employer),
         'Start / Leave': iso(p.status === 'Left' ? (p.left_date || p.start_date) : p.start_date),
         'Licence Expiry': pc('Driver Licence'), 'Diesel Tanker Permit (DCDD)': pc('Diesel Tanker Permit (DCDD)'),

@@ -66,6 +66,7 @@ EDITJS = open(os.path.join(here, "editdriver.js"), encoding="utf-8").read()
 EDITJS += open(os.path.join(here, "editsite.js"), encoding="utf-8").read()
 EDITJS += open(os.path.join(here, "editpaper.js"), encoding="utf-8").read()
 EDITJS += open(os.path.join(here, "editmachine.js"), encoding="utf-8").read()
+EDITJS += open(os.path.join(here, "editpperson.js"), encoding="utf-8").read()
 EDITJS += open(os.path.join(here, "edithist.js"), encoding="utf-8").read() + open(os.path.join(here, "back.js"), encoding="utf-8").read()
 o_ix = "      pill:'Hired in' }))),\n  ];"
 assert js.count(o_ix) == 1
@@ -178,6 +179,12 @@ assert js.count(o_r3) == 1
 js = js.replace(o_r3, "        <td class=\"id\"><a class=\"rlink\" data-f=\"${i.k==='v'?'card':'person'}\" ${i.k==='v'?'data-plate':'data-name'}=\"${esc(i.s)}\">${esc(i.s)}</a>${i.who?`<div class=\"sm\">${i.wk?`<a class=\"rlink\" data-f=\"person\" data-name=\"${esc(i.who)}\">${esc(i.who)}</a>`:esc(i.who)}</div>`:''}</td>", 1)
 head = head[:head.rfind("</style>")] + "#pgRenew a.rlink{color:inherit;text-decoration:none;cursor:pointer}#pgRenew a.rlink:hover{text-decoration:underline}\n" + head[head.rfind("</style>"):]
 js += "\ndocument.addEventListener('click', e => { const a = e.target.closest && e.target.closest('#pgRenew a.rlink'); if(!a || e.ctrlKey || e.metaKey || e.button !== 0) return; e.preventDefault(); location.hash = a.dataset.plate ? '#v/' + encodeURIComponent(a.dataset.plate) : '#p/' + encodeURIComponent(a.dataset.name); scrollTo({top:0}); });\n"
+o_p1 = '<div class="d">${esc(v)}</div><div class="left sm">noted</div></div>`);'
+assert js.count(o_p1) == 1
+js = js.replace(o_p1, '<div class="d">${esc(v)}</div><div class="left sm">noted</div>${window.prenewBtn ? window.prenewBtn(p, k) : ""}</div>`);', 1)
+o_p2 = '<div class="d">${fmt.format(parse(v))}</div><div class="left">${word}</div></div>`);'
+assert js.count(o_p2) == 1
+js = js.replace(o_p2, '<div class="d">${fmt.format(parse(v))}</div><div class="left">${word}</div>${window.prenewBtn ? window.prenewBtn(p, k) : ""}</div>`);', 1)
 assert '</script' not in js
 # GPS list: Status column for editors/admins only (guests never see it)
 g_old = "      cols:['Plate','Type','Driver','Site'],\n      secs:()=>[\n        ...groups(OURS.filter(v=>v.gps==='Active'),'GPS active'),"
