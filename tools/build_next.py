@@ -68,6 +68,7 @@ EDITJS += open(os.path.join(here, "editpaper.js"), encoding="utf-8").read()
 EDITJS += open(os.path.join(here, "editmachine.js"), encoding="utf-8").read()
 EDITJS += open(os.path.join(here, "editpperson.js"), encoding="utf-8").read()
 EDITJS += open(os.path.join(here, "hiredback.js"), encoding="utf-8").read()
+EDITJS += open(os.path.join(here, "editperson.js"), encoding="utf-8").read()
 EDITJS += open(os.path.join(here, "edithist.js"), encoding="utf-8").read() + open(os.path.join(here, "back.js"), encoding="utf-8").read()
 o_ix = "      pill:'Hired in' }))),\n  ];"
 assert js.count(o_ix) == 1
@@ -189,6 +190,9 @@ js = js.replace(o_p2, '<div class="d">${fmt.format(parse(v))}</div><div class="l
 o_hb = "      the rest.</p></div>` : '';\n  }"
 assert js.count(o_hb) == 1
 js = js.replace(o_hb, "      the rest.</p></div>` : '';\n    if(window.hiredBack) window.hiredBack(HR);\n  }", 1)
+o_pe = "          ${p.Site?`<span class=\"pill p-gap\">${esc(p.Site)}</span>`:''}\n"
+assert js.count(o_pe) == 1
+js = js.replace(o_pe, o_pe + "          ${window.pedBtn ? window.pedBtn(name) : ''}\n", 1)
 assert '</script' not in js
 # GPS list: Status column for editors/admins only (guests never see it)
 g_old = "      cols:['Plate','Type','Driver','Site'],\n      secs:()=>[\n        ...groups(OURS.filter(v=>v.gps==='Active'),'GPS active'),"
