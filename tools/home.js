@@ -26,6 +26,7 @@ function renderHome(){
       ${tile('Fines', FINES.tally.n, 'on record')}
       ${tile('Changes in the log', log.length, log.length >= 500 ? 'latest 500 shown' : 'made in the app')}
     </div>
+    ${homeRequests()}
     <div style="margin-top:18px"><div style="display:flex;align-items:baseline;gap:12px;margin-bottom:8px"><h3 style="margin:0;font-size:17px">Change log</h3>
       <span class="sm">everything changed in the app, newest first · Admin only</span></div>
       ${log.length ? `<div class="scroll"><table><thead><tr><th>When</th><th>Who</th><th>Type</th><th>What</th></tr></thead>
@@ -143,3 +144,27 @@ function homeExcel(){
 if(window.MYROLE === 'admin') el('tabHome').style.display = '';
 el('tabHome').onclick = ()=>{ location.hash='#home'; show('home', true); renderHome(); };
 
+
+/* Requests waiting for the Admin: an Editor asked to change a plate / asset no., engine no. or Registered to. */
+function homeRequests(){
+  const FN = {number:'Plate or asset no.', engine_no:'Engine no.', owner:'Registered to'};
+  const p = (window.APPREQ || []).filter(r => r.status === 'pending');
+  const plateOf = vid => { const v = Object.values(F.vehicles).find(x => x._id === vid); if(v) return v.plate; const m = ((typeof HIRE !== 'undefined' && HIRE.rows) || []).find(x => x.vid === vid); return m ? m.plate : 'vehicle ' + vid; };
+  if(!p.length) return '<div style="margin-top:18px"><h3 style="margin:0 0 6px;font-size:17px">Requests waiting</h3><p class="sm" style="margin:0">Nothing is waiting for your approval.</p></div>';
+  return `<div style="margin-top:18px"><h3 style="margin:0 0 8px;font-size:17px">Requests waiting <span class="pill p-warn">${p.length}</span></h3>
+    <div class="scroll"><table><thead><tr><th>Vehicle</th><th>What</th><th>Old</th><th>New</th><th>Asked by</th><th>Reason</th><th></th></tr></thead><tbody>
+    ${p.map(r => `<tr><td><b>${esc(plateOf(r.vehicle_id))}</b></td><td>${esc(FN[r.field] || r.field)}</td><td class="sm">${esc(r.old_value || 'empty')}</td><td><b>${esc(r.new_value || 'empty')}</b></td>
+      <td class="sm">${esc(homeWho(r.requested_email))}<br>${esc(homeWhen(r.requested_at))}</td><td class="sm">${esc(r.reason || '')}</td>
+      <td style="white-space:nowrap"><button type="button" class="btn" data-mreq="${r.id}" data-ok="1" style="background:var(--navy,#16315c);color:#fff">Approve</button>
+        <button type="button" class="btn" data-mreq="${r.id}" data-ok="0">Reject</button></td></tr>`).join('')}</tbody></table></div>
+    <div id="mreqMsg" class="sm" style="color:var(--crit);margin-top:6px"></div></div>`;
+}
+document.addEventListener('click', async e => {
+  const b = e.target.closest && e.target.closest('[data-mreq]'); if(!b) return;
+  const msg = document.getElementById('mreqMsg'); b.disabled = true; if(msg) msg.textContent = '';
+  const { error } = await sb.rpc('decide_machine_request', { p_id: +b.dataset.mreq, p_approve: b.dataset.ok === '1', p_note: null });
+  if(error){ b.disabled = false; if(msg) msg.textContent = error.message; return; }
+  const q = await sb.from('machine_change_requests').select('*').order('id', { ascending: false }).limit(300); if(!q.error) window.APPREQ = q.data;
+  renderHome(); homeRefreshLog();
+  const m2 = document.getElementById('mreqMsg'); if(m2){ m2.style.color = '#1d6b3f'; m2.textContent = (b.dataset.ok === '1' ? 'Approved. ' : 'Rejected. ') + 'Refresh the page to see an approved change on the cards and lists.'; }
+});
