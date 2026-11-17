@@ -375,6 +375,12 @@ footer{color:var(--muted);font-size:11.5px;margin-top:34px;line-height:1.7;max-w
    rows: a grid to scan by shape and colour, a table to compare down a column.
    The choice is remembered per tab in memory only — it is a viewing preference,
    not data, so it does not belong in a file or in the URL. */
+/* icon buttons, gear + column picker on every list (17 Nov 2026) */
+.viewsw button.ic{display:inline-flex;align-items:center;justify-content:center;padding:6px 10px}
+.coltools{position:relative;display:flex;justify-content:flex-end;margin:0 0 6px}
+.coltools[hidden]{display:none}
+.iconbtn{display:inline-flex;align-items:center;justify-content:center;padding:6px 9px;line-height:0}
+.coltools .colpop{top:calc(100% + 4px)}
 /* sortable tables + column picker (17 Nov 2026) */
 th.sortable{cursor:pointer;user-select:none;white-space:nowrap}
 th.sortable:hover{background:color-mix(in srgb,var(--navy) 85%,#fff)}
@@ -4151,11 +4157,11 @@ let drawLeads = ()=>{};
       <p class="cap">${esc(g.what)}. The plate each person is on comes straight from the
       daily board.${g.blind ? ' The board does not track plant, so an operator with no plate here is very likely working.' : ''}</p>
       <div class="listbar"><span class="sm" style="flex:1">Click a column heading to sort; click again to reverse.</span>
-        <div class="colwrap" id="uColsWrap"><button type="button" class="btn" id="uvCols" aria-expanded="false">Columns</button>
+        <div class="colwrap" id="uColsWrap"><button type="button" class="btn iconbtn" id="uvCols" aria-expanded="false" title="Choose columns" aria-label="Choose columns">${window.FALA_ICONS.gear}</button>
           <div class="colpop" id="uColsPop" hidden></div></div>
         <div class="viewsw" role="group" aria-label="How to show this list">
-          <button type="button" id="uvGrid" aria-pressed="true">Grid</button>
-          <button type="button" id="uvList" aria-pressed="false">List</button>
+          <button type="button" id="uvGrid" class="ic" title="Grid" aria-label="Grid" aria-pressed="true">${window.FALA_ICONS.grid}</button>
+          <button type="button" id="uvList" class="ic" title="List" aria-label="List" aria-pressed="false">${window.FALA_ICONS.list}</button>
         </div></div>
       <div id="uCards" class="people"></div>
       <div id="uTable" class="scroll" hidden></div>
@@ -5085,6 +5091,132 @@ el('tabFines').onclick = ()=>{ location.hash='#fines';    show('fines', true); }
 el('tabLists').onclick = ()=>{ location.hash='#lists';    show('lists', true); openLists(''); };
 addEventListener('hashchange', ()=>apply(location.hash.slice(1)));
 apply(location.hash.slice(1));
+
+/* ===================== sort + columns on every list (17 Nov 2026) =====================
+   One helper for all the list tables: click a heading to sort (again to reverse),
+   the gear above a table picks the columns. Works on the finished table, so it
+   covers every list the same way and survives a list being redrawn. The choice of
+   columns is kept on this device only. Empty cells always sort last. */
+(function(){
+  const SV = (p)=>'<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'+p+'</svg>';
+  const IC = window.FALA_ICONS = {
+    gear: SV('<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/>'),
+    grid: SV('<rect x="3" y="3" width="7" height="7" rx="1.2"/><rect x="14" y="3" width="7" height="7" rx="1.2"/><rect x="3" y="14" width="7" height="7" rx="1.2"/><rect x="14" y="14" width="7" height="7" rx="1.2"/>'),
+    list: SV('<line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><circle cx="3.5" cy="6" r=".8"/><circle cx="3.5" cy="12" r=".8"/><circle cx="3.5" cy="18" r=".8"/>')
+  };
+  /* Grid / List buttons show symbols; the words stay as the hover text and for screen readers. */
+  document.querySelectorAll('.viewsw button').forEach(b=>{
+    const t = b.textContent.trim().toLowerCase();
+    if(t==='grid'||t==='list'){ b.innerHTML = IC[t]; b.title = b.getAttribute('aria-label') || (t==='grid'?'Grid':'List'); b.setAttribute('aria-label', t==='grid'?'Grid':'List'); b.classList.add('ic'); }
+  });
+
+  const WL = ['pgFleet','pgRenew','pgHired','pgFines','pgLists'];
+  const MON = {jan:0,feb:1,mar:2,apr:3,may:4,jun:5,jul:6,aug:7,sep:8,oct:9,nov:10,dec:11};
+  const sorts = {};                                  // key -> {ci, dir}
+  const lab = th => th.textContent.replace(/[▲▼]/g,'').replace(/\s+/g,' ').trim();
+  const getHidden = k => { try{ const a = JSON.parse(localStorage.getItem('fala.cols.'+k)); return Array.isArray(a)?a:[]; }catch(e){ return []; } };
+  const setHidden = (k,a) => { try{ localStorage.setItem('fala.cols.'+k, JSON.stringify(a)); }catch(e){} };
+  const empty = s => s==='' || /^[—–-]$/.test(s);
+  const dateOf = s => { const m = /^(\d{1,2}) ([A-Za-z]{3,9}) (\d{2,4})/.exec(s); const k = m && m[2].slice(0,3).toLowerCase(); if(!m || !(k in MON)) return null;
+    let y = +m[3]; if(y < 100) y += 2000; return Date.UTC(y, MON[k], +m[1]); };
+  const numOf = s => { let neg = false; s = s.replace(/^expired\s+/i, m=>{ neg = true; return ''; });
+    const m = /^(?:AED\s*)?([-−]?\d[\d,]*(?:\.\d+)?)\s*(?:AED|d|days?|%|km|h|L)?(?:\s*(left|ago))?$/i.exec(s) || /^AED\s*(\d[\d,]*(?:\.\d+)?)/i.exec(s);
+    if(!m) return null; let v = parseFloat(m[1].replace(/,/g,'').replace('−','-')); if(neg || (m[2] && m[2].toLowerCase()==='ago')) v = -Math.abs(v); return v; };
+  const cellText = (r,ci) => { const c = r.cells[ci]; if(!c) return ''; return (c.dataset.sort != null ? c.dataset.sort : c.textContent).replace(/\s+/g,' ').trim(); };
+
+  function candidates(){
+    return [...document.querySelectorAll('section[id] .scroll table')].filter(t=>{
+      const sec = t.closest('section[id]'); if(!sec || !WL.includes(sec.id)) return false;
+      if(t.closest('.panel,.card,#uTable')) return false;
+      if(sec.id==='pgFleet' && !t.closest('#fTable')) return false;
+      if(sec.id==='pgHired' && !t.closest('#hTable,#hFirmTable')) return false;
+      const th = t.tHead && t.tHead.rows[0]; return !!th && th.cells.length >= 2 && t.tBodies.length > 0;
+    });
+  }
+  const keyOf = t => t.closest('section[id]').id + '|' + [...t.tHead.rows[0].cells].map(lab).join('¦');
+
+  function sortBody(t, st){
+    const tb = t.tBodies[0], rows = [...tb.rows];
+    if(rows.some(r=>r.cells.length===1 && r.cells[0].colSpan>1 && !r.classList.contains('secthead'))) return;   // "nothing here" row
+    const blocks = []; let cur = null;
+    rows.forEach(r=>{ if(r.classList.contains('secthead') || !cur){ cur = {head: r.classList.contains('secthead') ? r : null, rows: []}; blocks.push(cur); } if(!r.classList.contains('secthead')) cur.rows.push(r); });
+    const all = blocks.flatMap(b=>b.rows);
+    const vals = all.map(r=>cellText(r, st.ci)).filter(s=>!empty(s));
+    const share = f => vals.length && vals.filter(v=>f(v)!==null).length / vals.length >= .8;
+    const mode = share(dateOf) ? 'd' : share(numOf) ? 'n' : 't';
+    const val = r => { const s = cellText(r, st.ci); if(empty(s)) return null; return mode==='d' ? dateOf(s) : mode==='n' ? numOf(s) : s; };
+    const out = [];
+    blocks.forEach(b=>{
+      const dec = b.rows.map((r,i)=>({r, i, v: val(r)}));
+      dec.sort((a,b2)=>{ const ea = a.v===null||a.v===undefined, eb = b2.v===null||b2.v===undefined; if(ea&&eb) return a.i-b2.i; if(ea) return 1; if(eb) return -1;
+        const c = mode==='t' ? String(a.v).localeCompare(String(b2.v),'en',{numeric:true,sensitivity:'base'}) : a.v-b2.v; return (c*st.dir) || (a.i-b2.i); });
+      if(b.head) out.push(b.head); dec.forEach(x=>out.push(x.r));
+    });
+    out.forEach(r=>tb.appendChild(r));
+    if(lab(t.tHead.rows[0].cells[0]) === '#'){ let n = 0; [...tb.rows].forEach(r=>{ if(!r.classList.contains('secthead') && r.cells[0]) r.cells[0].textContent = ++n; }); }
+  }
+
+  function pass(){
+    obs.disconnect();
+    try{
+      const seen = {}; const keep = new Set();
+      candidates().forEach(t=>{
+        const key = keyOf(t), heads = [...t.tHead.rows[0].cells], hid = getHidden(key), st = sorts[key];
+        heads.forEach((th,i)=>{
+          if(!th.dataset.lt){ th.dataset.lt = '1'; th.classList.add('sortable'); th.tabIndex = 0; th.insertAdjacentHTML('beforeend',' <span class="sa"></span>'); }
+          const sa = th.querySelector('.sa'); if(sa){ sa.className = 'sa' + (st && st.ci===i ? ' on' : ''); sa.textContent = st && st.ci===i ? (st.dir>0?'▲':'▼') : ''; }
+          th.setAttribute('aria-sort', st && st.ci===i ? (st.dir>0?'ascending':'descending') : 'none');
+        });
+        if(st && st.ci < heads.length) sortBody(t, st);
+        const labels = heads.map(lab);
+        [t.tHead.rows[0], ...t.tBodies[0].rows].forEach(r=>{ if(r.cells.length !== heads.length) return;
+          [...r.cells].forEach((c,i)=>{ const h = i>0 && labels[i] && hid.includes(labels[i]); if(h) c.style.display='none'; else if(c.style.display==='none') c.style.display=''; }); });
+        const box = t.closest('.scroll'), sk = key.split('|')[0] + '|' + key;
+        if(!seen[sk]){
+          seen[sk] = 1; let bar = box.previousElementSibling;
+          if(!(bar && bar.classList.contains('coltools') && bar.dataset.ck === key)){
+            if(bar && bar.classList.contains('coltools')) bar.remove();
+            bar = document.createElement('div'); bar.className = 'coltools'; bar.dataset.ck = key;
+            bar.innerHTML = '<button type="button" class="btn iconbtn" data-gear aria-expanded="false" title="Choose columns" aria-label="Choose columns">'+IC.gear+'</button><div class="colpop" hidden></div>';
+            box.parentNode.insertBefore(bar, box);
+            const pop = bar.querySelector('.colpop');
+            pop.innerHTML = labels.map((l,i)=> i>0 && l && l!=='#' ? '<label><input type="checkbox" data-cc="'+i+'"> <span></span></label>' : '').join('') + '<button type="button" class="btn" data-creset>Reset</button>';
+            pop.querySelectorAll('label').forEach(lb=>{ const i = +lb.querySelector('input').dataset.cc; lb.querySelector('span').textContent = labels[i]; });
+          }
+          keep.add(bar);
+          bar.hidden = !!box.closest('[hidden]') || box.hidden;
+          bar.querySelectorAll('input[data-cc]').forEach(cb=>{ cb.checked = !hid.includes(labels[+cb.dataset.cc]); });
+        }
+      });
+      document.querySelectorAll('.coltools').forEach(b=>{ if(!keep.has(b)) b.remove(); });
+    } finally { watch(); }
+  }
+  let queued = false;
+  const later = ()=>{ if(queued) return; queued = true; requestAnimationFrame(()=>{ queued = false; pass(); }); };
+  const obs = new MutationObserver(later);
+  const watch = ()=>obs.observe(document.body, {childList:true, subtree:true, attributes:true, attributeFilter:['hidden']});
+
+  document.addEventListener('click', e=>{
+    const th = e.target.closest('th.sortable');
+    if(th && th.closest('table') && candidates().includes(th.closest('table'))){
+      const t = th.closest('table'), key = keyOf(t), ci = th.cellIndex, st = sorts[key];
+      sorts[key] = (st && st.ci===ci) ? {ci, dir:-st.dir} : {ci, dir:1}; pass(); return; }
+    const g = e.target.closest('[data-gear]');
+    document.querySelectorAll('.coltools .colpop').forEach(p=>{ if(!g || p.parentNode !== g.parentNode) p.hidden = true; });
+    if(g){ const p = g.parentNode.querySelector('.colpop'); p.hidden = !p.hidden; g.setAttribute('aria-expanded', !p.hidden); return; }
+    const rs = e.target.closest('[data-creset]');
+    if(rs){ setHidden(rs.closest('.coltools').dataset.ck, []); delete sorts[rs.closest('.coltools').dataset.ck]; pass(); document.querySelectorAll('.coltools .colpop').forEach(p=>p.hidden=false); }
+  });
+  document.addEventListener('change', e=>{
+    const cb = e.target.closest('input[data-cc]'); if(!cb) return;
+    const bar = cb.closest('.coltools'), key = bar.dataset.ck, labels = key.slice(key.indexOf('|')+1).split('¦');
+    const hid = [...bar.querySelectorAll('input[data-cc]')].filter(x=>!x.checked).map(x=>labels[+x.dataset.cc]);
+    setHidden(key, hid); const st = sorts[key]; if(st && hid.includes(labels[st.ci])) delete sorts[key]; pass(); bar.querySelector('.colpop').hidden = false;
+  });
+  document.addEventListener('keydown', e=>{ const th = e.target.closest && e.target.closest('th.sortable'); if(th && (e.key==='Enter'||e.key===' ')){ e.preventDefault(); th.click(); } });
+  document.addEventListener('keydown', e=>{ if(e.key==='Escape') document.querySelectorAll('.coltools .colpop').forEach(p=>p.hidden=true); });
+  pass();
+})();
 
 /* ============================ theme ============================ */
 const tb = el('themeBtn');
