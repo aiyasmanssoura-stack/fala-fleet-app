@@ -382,7 +382,7 @@
     const kidSet = new Set();
     vs.forEach((v) => { v.kids.forEach((k) => { const kid = R[k]; if (kid && k !== v.plate) { kid.coupledTo = v.plate; kid.site = R[v.plate].site || kid.site; R[v.plate].kids.push(kid); kidSet.add(k); } }); });
     const sites = db.sites.slice().sort((a, b) => a.id - b.id).map((x) => ({ name: x.name, what: s(x.what_it_is), note: s(x.note),
-      lat: x.lat === null ? null : Number(x.lat), lon: x.lng === null ? null : Number(x.lng), v: [] }));
+      lat: x.lat === null ? null : Number(x.lat), lon: x.lng === null ? null : Number(x.lng), kind: x.kind || 'current', v: [] }));
     const garaged = Object.values(R).filter((v) => v.garage);
     if (garaged.length) {
       const yard = garaged[0].yard, base = sites.find((x) => x.name === yard);

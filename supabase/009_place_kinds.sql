@@ -1,0 +1,6 @@
+-- Applied 18 Nov 2026 (note-style copy; the change lives in the database).
+-- sites.kind: permanent | current | archive | sister | none
+-- projects.status: current | archived
+-- Renames: Fala JA -> Fala Yard Jabel Ali, DIC -> DIC Yard, Siji -> Thuban & Masafi
+-- Added: The Valley (24.994697, 55.437515) with project RUKN MIRAGE VINDERA
+-- Archived: JVC (AL SAYEGH PROJECT), EXPO ANGOLA. Fala Road = sister, Maintenance = none.

@@ -1595,6 +1595,7 @@ let drawLeads = ()=>{};
   const u2x = u => (u - V.x) / V.w * W, u2y = u => (u - V.y) / V.h * H;
   const ux = lon => (lon - V.lon0) * V.co * V.k, uy = lat => -(lat - V.lat0) * V.k;
 
+  const KINDTAG = {permanent:'Permanent', sister:'Sister company', archive:'Archive: finished, move its machines'};
   const INS = {lon0:54.85, lat0:24.70, lon1:55.50, lat1:25.20, w:330, h:282, pad:10, x:24, y:24};
   INS.ux0 = ux(INS.lon0); INS.uy0 = uy(INS.lat1);
   INS.sx = (INS.w - 2*INS.pad) / (ux(INS.lon1) - INS.ux0);
@@ -1624,7 +1625,7 @@ let drawLeads = ()=>{};
 
   // a site with coordinates but nothing standing there still belongs on the map —
   // it is a place you use, just empty today
-  const emptySites = D.sites.filter(s=>s.lat!=null && !s.n);
+  const emptySites = D.sites.filter(s=>s.lat!=null && !s.n && s.kind!=='archive');
   const cluster = placedSites.filter(inInset), far = placedSites.filter(s=>!inInset(s));
   if(cluster.length){
     const bx=u2x(INS.ux0), by=u2y(INS.uy0),
@@ -1717,7 +1718,7 @@ let drawLeads = ()=>{};
       ['Hired in', hiredVis, hiredVis?'rented, standing on our sites':'none shown', ''],
       ['Located', placed, `across ${places} place${places===1?'':'s'}`,''],
       ['No location yet', noloc, 'set a Site on the BOARD sheet', noloc?'t-gap':''],
-      ['In the garage', garaged, 'at the Fala JA yard', garaged?'t-gap':''],
+      ['In the garage', garaged, 'at the Fala Yard Jabel Ali yard', garaged?'t-gap':''],
       ['Drivers on leave', D.leave.length, 'listed under People', D.leave.length?'t-gap':''],
     ].map(([l,v,n,k])=>`<div class="tile ${k}"><div class="lbl">${l}</div>
       <div class="val">${v}</div><div class="note">${n}</div></div>`).join('');
@@ -1909,6 +1910,7 @@ let drawLeads = ()=>{};
       <div class="sh">${ring(t,18)}<h3>${esc(s.name)}</h3>
         <span class="meta">${esc(s.what||'')} · ${t.n} machine${t.n===1?'':'s'}${
           t.hired?` <span class="sm">(${t.n-t.hired} ours · ${t.hired} hired)</span>`:''}</span>
+        ${KINDTAG[s.kind]?`<span class="pill ${s.kind==='archive'?'p-crit':'p-gap'}">${KINDTAG[s.kind]}</span>`:''}
         ${s.lat==null?'<span class="pill p-gap">no position on the map yet</span>':''}
         ${nbad?`<span class="pill p-crit">${nbad} needing repair</span>`:''}</div>
       <div class="scroll"><table>${HEAD}<tbody>${rows(s.v)}</tbody></table></div>
