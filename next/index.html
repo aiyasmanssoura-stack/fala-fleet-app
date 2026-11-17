@@ -3074,6 +3074,7 @@ let drawLeads = ()=>{};
     el2.innerHTML = `<div role="dialog" aria-modal="true" style="width:min(560px,100%);background:var(--card,#fff);color:var(--ink,inherit);border-radius:16px;border:1px solid var(--line,#d9d6cc);padding:24px 26px;box-sizing:border-box;display:flex;flex-direction:column;gap:14px;max-height:92vh;overflow:auto">
       <div><div class="sm" style="letter-spacing:.08em;text-transform:uppercase;font-weight:600">Edit driver details</div>
         <h2 style="margin:4px 0 0;font-size:22px">${esc(name)}</h2></div>
+      ${f('pdName','Full name',name)}
       <div><label for="pdSt" style="${lab}">Status</label><select id="pdSt" style="${fld}">
         <option value="Active">Active</option><option value="On Leave">On leave</option><option value="Left">Left the company</option></select></div>
       <div id="pdWarn" class="sm" style="display:none;background:#fff4e0;border:1px solid #f0d49a;border-radius:10px;padding:11px 13px"></div>
@@ -3093,18 +3094,26 @@ let drawLeads = ()=>{};
     $('chgOk').onclick = async () => {
       const btn = $('chgOk'), err = $('chgErr'), s = $('pdSt').value, nv = id => $(id).value.trim() || null;
       btn.disabled = true; btn.textContent = 'Saving…'; err.textContent = '';
+      const newName = $('pdName').value.replace(/\s+/g, ' ').trim(); let renamed = false;
+      if(newName && newName !== name){
+        if(Object.keys(D.persons).some(k => k !== name && k.toLowerCase() === newName.toLowerCase())){ err.textContent = 'Another person already has this name.'; btn.disabled = false; btn.textContent = 'Save change'; return; }
+        const r = await sb.rpc('rename_person', { p_person: p._id, p_name: newName });
+        if(r.error){ err.textContent = r.error.message; btn.disabled = false; btn.textContent = 'Save change'; return; }
+        renamed = true;
+      }
       const { error } = await sb.rpc('edit_person_details', { p_person: p._id, p_status: s, p_left: s === 'Left' ? nv('pdLeftD') : null,
         p_leave_from: s === 'On Leave' ? nv('pdLvF') : null, p_leave_to: s === 'On Leave' ? nv('pdLvT') : null, p_leave_note: s === 'On Leave' ? nv('pdLvN') : null,
         p_role: $('pdRole').value, p_emp: nv('pdEmp'), p_note: nv('pdNote') });
-      if(error){ err.textContent = error.message; btn.disabled = false; btn.textContent = 'Save change'; return; }
+      if(error){ err.textContent = (renamed ? 'The name was changed, but the other details were not saved: ' : '') + error.message; btn.disabled = false; btn.textContent = 'Save change'; if(renamed){ const o = name; p['Name (as per passport)'] = newName; D.persons[newName] = p; delete D.persons[o]; } return; }
       p.Status = s; p.Role = $('pdRole').value.trim(); p['Fala Employee No'] = $('pdEmp').value.trim(); p.Note = $('pdNote').value.trim();
       if(s === 'Left'){ p['Left date'] = $('pdLeftD').value; p['Start / Leave'] = $('pdLeftD').value; }
       if(s === 'On Leave'){ p['Leave from'] = $('pdLvF').value; p['Leave to'] = $('pdLvT').value; p['Leave note'] = $('pdLvN').value.trim(); }
+      const oldName = name; if(renamed){ p['Name (as per passport)'] = newName; D.persons[newName] = p; delete D.persons[oldName]; name = newName; }
       close(); personCard(name);
       const host = el('fPerson');
       if(host){ const n = document.createElement('div'); n.setAttribute('role', 'status');
         n.style.cssText = 'background:#e6f4ec;border:1px solid #b9dfc8;color:#1d6b3f;border-radius:10px;padding:11px 14px;font-size:14px;font-weight:500;margin-bottom:12px';
-        n.textContent = `Saved. ${name} is now ${s === 'Left' ? 'marked as left' : s === 'On Leave' ? 'on leave' : 'active'}. The Drivers lists show it after you refresh the page.`;
+        n.textContent = renamed ? `Saved. The name is now ${name} (was ${oldName}). Refresh the page to see it in all the lists.` : `Saved. ${name} is now ${s === 'Left' ? 'marked as left' : s === 'On Leave' ? 'on leave' : 'active'}. The Drivers lists show it after you refresh the page.`;
         host.insertBefore(n, host.firstChild); }
     };
   }
