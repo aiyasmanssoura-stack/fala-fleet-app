@@ -1,0 +1,3 @@
+-- Applied 18 Nov 2026 (note-style copy; the functions live in the database). All Admin only, all write change_log.
+-- add_place(p_name, p_kind, p_what, p_lat, p_lng) · update_place(p_site, p_name, p_kind, p_what, p_lat, p_lng)
+-- add_project(p_name, p_site) · update_project(p_project, p_name, p_site)

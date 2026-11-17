@@ -25,76 +25,127 @@ function placeProjects(site){
   const rows = (typeof HIRE !== 'undefined' && HIRE.rows) ? HIRE.rows : [];
   return ps.map(p => ({id: p.id, name: p.name, status: p.status || 'current', hired: rows.filter(r => r.proj === p.name).length}));
 }
-function placePanel(s){
-  const admin = placeIsAdmin(), c = placeCounts(s.name), ps = placeProjects(s), k = s.kind || 'current', n = c.ours + c.hired;
-  const kl = (PLACE_KINDS.find(x => x[0] === k) || [k, k])[1];
-  const btn = admin ? (k === 'archive'
-    ? `<button type="button" class="btn" data-pl="kind" data-id="${s.id}" data-to="current">Restore place</button>`
-    : (k === 'current' ? `<button type="button" class="btn" data-pl="arch" data-id="${s.id}" data-n="${n}">Archive place</button>` : '')) : '';
-  return `<div class="panel" style="position:sticky;top:10px">
-    <div style="display:flex;gap:10px;align-items:baseline;flex-wrap:wrap"><h3 style="margin:0">${esc(s.name)}</h3><span class="pill p-gap">${esc(kl)}</span><span style="flex:1"></span>${btn}</div>
-    <p class="sm" style="margin:4px 0 6px">${esc(s.what_it_is || '')}</p>
-    <p class="sm" style="margin:0 0 8px"><b>${c.ours}</b> ours${c.hired ? ` · <b>${c.hired}</b> hired in` : ''}</p>
-    ${k === 'archive' && n ? `<p class="sm" style="margin:0 0 8px;color:var(--crit,#b3261e)"><b>${n}</b> machine${n === 1 ? ' is' : 's are'} still recorded here — move ${n === 1 ? 'it' : 'them'} to their real place.</p>` : ''}
-    ${s.lat == null && k !== 'none' ? '<p class="sm" style="margin:0 0 8px">No position on the map yet.</p>' : ''}
-    ${ps.length ? `<div style="margin:0 0 10px"><div class="sm" style="font-weight:600;margin-bottom:4px">Projects</div>${ps.map(p => `<div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;border-top:1px solid var(--line,#e5e2d9);padding:6px 0">
-        <span style="font-weight:600">${esc(p.name)}</span>${p.status === 'archived' ? ' <span class="pill p-crit">Archived</span>' : ''}
-        <span class="sm">${p.hired} hired machine${p.hired === 1 ? '' : 's'}</span><span style="flex:1"></span>
-        ${admin ? (p.status === 'archived'
-          ? `<button type="button" class="btn" data-pl="proj" data-id="${p.id}" data-to="current">Restore project</button>`
-          : `<button type="button" class="btn" data-pl="parch" data-id="${p.id}" data-n="${p.hired}">Archive project</button>`) : ''}</div>`).join('')}</div>` : ''}
-    <div data-pl-msg style="margin:0 0 8px"></div>
-    ${n ? `<div class="sm" style="font-weight:600;margin-bottom:4px">Machines</div><div style="max-height:380px;overflow:auto">${placeMachinesHtml(s.name)}</div>` : '<p class="sm">No machines here.</p>'}</div>`;
+/* ---- Settings page (Admin): places and projects ---- */
+const PLACE_TAGS = {permanent:'Permanent', current:'Project', sister:'Sister company', none:'No map position', archive:'Archive'};
+function plParsePos(t){
+  t = (t || '').trim(); if(!t) return {lat: null, lng: null};
+  const m = /@(-?\d+\.\d+),(-?\d+\.\d+)/.exec(t) || /!3d(-?\d+\.\d+)!4d(-?\d+\.\d+)/.exec(t) || /^\s*(-?\d+(?:\.\d+)?)\s*[,;\s]\s*(-?\d+(?:\.\d+)?)\s*$/.exec(t);
+  if(!m) return null; const lat = parseFloat(m[1]), lng = parseFloat(m[2]);
+  return (Math.abs(lat) <= 90 && Math.abs(lng) <= 180) ? {lat, lng} : null;
 }
-function renderPlaces(){
+function plDialog(title, fieldsHtml, buttons, onSave){
+  const o = document.createElement('div');
+  o.style.cssText = 'position:fixed;inset:0;background:rgba(20,30,50,.45);z-index:1000;display:flex;align-items:center;justify-content:center;padding:16px;overflow:auto';
+  o.innerHTML = `<div role="dialog" aria-modal="true" style="width:min(520px,100%);background:var(--card,#fff);color:var(--ink,inherit);border-radius:16px;border:1px solid var(--line,#d9d6cc);padding:22px 24px;display:flex;flex-direction:column;gap:14px">
+    <h2 style="margin:0;font-size:21px">${esc(title)}</h2>${fieldsHtml}
+    <div id="plErr" style="color:var(--crit,#b3261e);font-size:13px;min-height:16px"></div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:flex-end">${buttons}<button type="button" class="btn" id="plX">Cancel</button><button type="button" class="btn" id="plOk" style="background:var(--navy,#16315c);color:#fff">Save</button></div></div>`;
+  document.body.appendChild(o);
+  const close = () => o.remove(); o.querySelector('#plX').onclick = close;
+  o.addEventListener('click', e => { if(e.target === o) close(); });
+  const err = o.querySelector('#plErr'), ok = o.querySelector('#plOk');
+  ok.onclick = async () => { err.textContent = ''; ok.disabled = true; try{ const m = await onSave(o); if(m) err.textContent = m; else close(); }catch(x){ err.textContent = x.message || String(x); } ok.disabled = false; };
+  return {o, err, close};
+}
+const PL_FLD = 'font:inherit;padding:10px 12px;border:1px solid var(--line,#c9c6bb);border-radius:8px;min-height:42px;box-sizing:border-box;width:100%;background:var(--card,#fff);color:inherit';
+const PL_LAB = 'display:block;font-weight:600;font-size:13px;margin-bottom:4px';
+function plPlaceDialog(site){
+  const isNew = !site, k = site ? (site.kind || 'current') : 'current', archived = k === 'archive';
+  const pos = site && site.lat != null ? `${site.lat}, ${site.lng}` : '';
+  const kinds = ['permanent', 'current', 'sister', 'none'].map(x => `<option value="${x}"${x === k ? ' selected' : ''}>${PLACE_TAGS[x]}</option>`).join('');
+  const f = `<div><label style="${PL_LAB}">Name</label><input id="plN" style="${PL_FLD}" value="${esc(site ? site.name : '')}"></div>
+    ${archived ? `<div class="sm">This place is in the Archive.</div>` : `<div><label style="${PL_LAB}">Kind</label><select id="plK" style="${PL_FLD}">${kinds}</select></div>`}
+    <div><label style="${PL_LAB}">What it is</label><input id="plW" style="${PL_FLD}" value="${esc(site ? site.what_it_is || '' : '')}"></div>
+    <div><label style="${PL_LAB}">Map position</label><input id="plP" style="${PL_FLD}" placeholder="24.994697, 55.437515  — or a full Google Maps address" value="${esc(pos)}">
+      <div class="sm" style="margin-top:4px">Leave empty for no pin on the map. A short maps.app.goo.gl link cannot be read here — send it to me, or paste the latitude and longitude.</div></div>
+    ${site ? `<div class="sm"><b>${placeCounts(site.name).ours}</b> ours · <b>${placeCounts(site.name).hired}</b> hired in at this place</div>` : ''}`;
+  const btn = site ? (archived ? '<button type="button" class="btn" id="plArch">Restore place</button>' : '<button type="button" class="btn" id="plArch">Archive place</button>') : '';
+  const d = plDialog(isNew ? 'Add place' : 'Place', f, btn, async o => {
+    const v = id => o.querySelector(id).value, name = v('#plN').trim(), what = v('#plW').trim(), kind = archived ? 'archive' : v('#plK');
+    const ps = plParsePos(v('#plP')); if(!ps) return 'The map position could not be read. Use latitude, longitude — for example 24.994697, 55.437515.';
+    if(!name) return 'Type the place name.';
+    const args = {p_name: name, p_kind: kind, p_what: what, p_lat: ps.lat, p_lng: ps.lng};
+    const { data, error } = isNew ? await sb.rpc('add_place', args) : await sb.rpc('update_place', Object.assign({p_site: site.id}, args));
+    if(error) return error.message;
+    if(isNew) (window.APPSITES = window.APPSITES || []).push({id: data.id, name, kind, what_it_is: what || null, lat: ps.lat, lng: ps.lng});
+    else Object.assign(site, {name, kind, what_it_is: what || null, lat: ps.lat, lng: ps.lng});
+    renderSettings();
+  });
+  const a = d.o.querySelector('#plArch');
+  if(a) a.onclick = async () => {
+    const n = placeCounts(site.name); const cnt = n.ours + n.hired;
+    if(!archived && cnt && !a.dataset.sure){ a.dataset.sure = '1'; a.textContent = `Confirm — ${cnt} machine${cnt === 1 ? ' is' : 's are'} still here`; return; }
+    const to = archived ? 'current' : 'archive';
+    const { error } = await sb.rpc('set_place_kind', {p_site: site.id, p_kind: to});
+    if(error){ d.err.textContent = error.message; return; }
+    site.kind = to; d.close(); renderSettings();
+  };
+}
+function plProjectDialog(pr){
+  const isNew = !pr, archived = pr && pr.status === 'archived';
+  const sites = (window.APPSITES || []).filter(s => s.kind !== 'archive' || (pr && pr.site_id === s.id)).sort((a, b) => a.name < b.name ? -1 : 1);
+  const f = `<div><label style="${PL_LAB}">Project name</label><input id="plN" style="${PL_FLD}" value="${esc(pr ? pr.name : '')}"></div>
+    <div><label style="${PL_LAB}">Place</label><select id="plS" style="${PL_FLD}">${isNew ? '<option value="">Choose…</option>' : ''}${sites.map(s => `<option value="${s.id}"${pr && pr.site_id === s.id ? ' selected' : ''}>${esc(s.name)}</option>`).join('')}</select></div>
+    ${pr ? `<div class="sm">${placeProjects({id: pr.site_id}).find(x => x.id === pr.id).hired} hired machine(s) on this project.${archived ? ' It is in the Archive.' : ''}</div>` : ''}`;
+  const btn = pr ? `<button type="button" class="btn" id="plArch">${archived ? 'Restore project' : 'Archive project'}</button>` : '';
+  const d = plDialog(isNew ? 'Add project' : 'Project', f, btn, async o => {
+    const name = o.querySelector('#plN').value.trim(), site = +o.querySelector('#plS').value;
+    if(!name) return 'Type the project name.'; if(!site) return 'Choose the place.';
+    const { data, error } = isNew ? await sb.rpc('add_project', {p_name: name, p_site: site}) : await sb.rpc('update_project', {p_project: pr.id, p_name: name, p_site: site});
+    if(error) return error.message;
+    if(isNew) (window.APPPROJECTS = window.APPPROJECTS || []).push({id: data.id, name, site_id: site, status: 'current'});
+    else Object.assign(pr, {name, site_id: site});
+    renderSettings();
+  });
+  const a = d.o.querySelector('#plArch');
+  if(a) a.onclick = async () => {
+    const hired = placeProjects({id: pr.site_id}).find(x => x.id === pr.id).hired;
+    if(!archived && hired && !a.dataset.sure){ a.dataset.sure = '1'; a.textContent = `Confirm — ${hired} machine${hired === 1 ? ' is' : 's are'} still on it`; return; }
+    const to = archived ? 'current' : 'archived';
+    const { error } = await sb.rpc('set_project_status', {p_project: pr.id, p_status: to});
+    if(error){ d.err.textContent = error.message; return; }
+    pr.status = to; d.close(); renderSettings();
+  };
+}
+function renderSettings(){
+  const root = el('settingsBody');
+  if(!placeIsAdmin()){ root.innerHTML = '<p class="sm">Settings are for the Admin.</p>'; return; }
   const sites = (window.APPSITES || []).slice().sort((a, b) => a.name < b.name ? -1 : 1);
-  const sel = window.PLSEL && sites.find(x => x.name === window.PLSEL);
-  const row = s => { const c = placeCounts(s.name), k = s.kind || 'current', ps = placeProjects(s), n = c.ours + c.hired;
-    return `<tr class="rowlink" data-site="${esc(s.name)}" style="cursor:pointer${sel && sel.name === s.name ? ';background:var(--soft,#f4f2ec)' : ''}">
-      <td class="id"><b>${esc(s.name)}</b>${k === 'archive' && n ? ' <span class="pill p-crit">machines still here</span>' : ''}</td>
-      <td>${esc((PLACE_KINDS.find(x => x[0] === k) || [k, k])[1])}</td><td class="n">${c.ours}</td><td class="n">${c.hired}</td>
-      <td class="sm">${ps.map(p => esc(p.name) + (p.status === 'archived' ? ' (archived)' : '')).join(', ')}</td></tr>`; };
-  const body = PLACE_KINDS.map(([k, t]) => { const g = sites.filter(x => (x.kind || 'current') === k); if(!g.length) return '';
-    return `<tr class="secthead"><td colspan="5">${t} · ${g.length}</td></tr>` + g.map(row).join(''); }).join('');
-  el('placesBody').innerHTML = `
-    <div style="margin-bottom:12px"><h2 style="margin:0">Places</h2>
-      <p class="sm" style="margin:4px 0 0">One list for the map, our vehicles and Hired In. Click a place to see its projects and machines${placeIsAdmin() ? ' and to archive it' : ''}.</p></div>
-    <div id="plGrid" style="display:grid;gap:14px;grid-template-columns:minmax(0,1.3fr) minmax(280px,1fr);align-items:start">
-      <div class="scroll"><table><thead><tr><th>Place</th><th>Kind</th><th class="n">Ours</th><th class="n">Hired in</th><th>Projects</th></tr></thead><tbody>${body}</tbody></table></div>
-      <div id="plSide">${sel ? placePanel(sel) : '<p class="sm">Click a place in the list.</p>'}</div></div>
-    <style>@media(max-width:820px){#plGrid{grid-template-columns:1fr!important}}#pgPlaces tr.rowlink:hover td{background:var(--soft,#f4f2ec)}</style>`;
-}
-async function placeSave(btn, fn, args, after){
-  const box = btn.closest('.panel').querySelector('[data-pl-msg]'); btn.disabled = true; box.textContent = '';
-  const { data, error } = await sb.rpc(fn, args);
-  if(error){ btn.disabled = false; box.innerHTML = `<span style="color:var(--crit,#b3261e)">${esc(error.message)}</span>`; return; }
-  after(data); renderPlaces();
+  const siteName = id => (sites.find(s => s.id === id) || {}).name || '';
+  const srow = s => { const c = placeCounts(s.name), k = s.kind || 'current', n = c.ours + c.hired;
+    return `<tr class="rowlink" data-pl-site="${s.id}" style="cursor:pointer"><td class="id"><b>${esc(s.name)}</b>${k === 'archive' && n ? ' <span class="pill p-crit">machines still here</span>' : ''}</td>
+      <td><span class="pill p-gap">${esc(PLACE_TAGS[k] || k)}</span></td><td class="n">${n}</td></tr>`; };
+  const act = sites.filter(s => (s.kind || 'current') !== 'archive'), arc = sites.filter(s => (s.kind || 'current') === 'archive');
+  const prs = (window.APPPROJECTS || []).slice().sort((a, b) => a.name < b.name ? -1 : 1);
+  const prow = p => { const h = placeProjects({id: p.site_id}).find(x => x.id === p.id); 
+    return `<tr class="rowlink" data-pl-proj="${p.id}" style="cursor:pointer"><td class="id"><b>${esc(p.name)}</b></td><td>${esc(siteName(p.site_id))}</td>
+      <td>${p.status === 'archived' ? '<span class="pill p-crit">Archived</span>' : 'Active'}</td><td class="n">${h ? h.hired : 0}</td></tr>`; };
+  root.innerHTML = `
+    <h2 style="margin:0 0 14px">Settings</h2>
+    <div style="display:flex;gap:10px;align-items:baseline;flex-wrap:wrap;margin:0 0 6px"><h3 style="margin:0">Places</h3><span class="sm">Click a line to change it.</span><span style="flex:1"></span><button type="button" class="btn" id="plAddSite">Add place</button></div>
+    <div class="scroll"><table><thead><tr><th>Place</th><th>Kind</th><th class="n">Machines</th></tr></thead><tbody>
+      <tr class="secthead"><td colspan="3">Active · ${act.length}</td></tr>${act.map(srow).join('')}
+      ${arc.length ? `<tr class="secthead"><td colspan="3">Archive · ${arc.length}</td></tr>${arc.map(srow).join('')}` : ''}</tbody></table></div>
+    <div style="display:flex;gap:10px;align-items:baseline;flex-wrap:wrap;margin:26px 0 6px"><h3 style="margin:0">Projects</h3><span style="flex:1"></span><button type="button" class="btn" id="plAddProj">Add project</button></div>
+    <div class="scroll"><table><thead><tr><th>Project</th><th>Place</th><th>Status</th><th class="n">Hired machines</th></tr></thead><tbody>
+      ${prs.filter(p => p.status !== 'archived').map(prow).join('')}${prs.filter(p => p.status === 'archived').map(prow).join('')}</tbody></table></div>`;
+  el('plAddSite').onclick = () => plPlaceDialog(null);
+  el('plAddProj').onclick = () => plProjectDialog(null);
 }
 document.addEventListener('click', e => {
-  const r = e.target.closest && e.target.closest('#pgPlaces tr.rowlink');
-  if(r && !e.target.closest('a,button')){ window.PLSEL = r.dataset.site; renderPlaces(); return; }
-  const b = e.target.closest && e.target.closest('[data-pl]'); if(!b || !el('placesBody').contains(b)) return;
-  const id = +b.dataset.id, what = b.dataset.pl;
-  if(what === 'arch' || what === 'parch'){
-    if(!b.dataset.sure){ b.dataset.sure = '1'; const n = +b.dataset.n;
-      b.textContent = n ? `Confirm — ${n} machine${n === 1 ? ' is' : 's are'} still here` : 'Confirm archive';
-      b.closest('.panel').querySelector('[data-pl-msg]').innerHTML = '<span class="sm">Press again to archive. Nothing is deleted; you can restore it.</span>'; return; }
-    if(what === 'arch') placeSave(b, 'set_place_kind', {p_site: id, p_kind: 'archive'}, () => { (window.APPSITES.find(s => s.id === id) || {}).kind = 'archive'; const m = (M.sites || []).find(s => s.name === (window.APPSITES.find(s => s.id === id) || {}).name); if(m) m.kind = 'archive'; });
-    else placeSave(b, 'set_project_status', {p_project: id, p_status: 'archived'}, () => { (window.APPPROJECTS.find(p => p.id === id) || {}).status = 'archived'; });
-  } else if(what === 'kind'){
-    placeSave(b, 'set_place_kind', {p_site: id, p_kind: b.dataset.to}, () => { const s = window.APPSITES.find(s => s.id === id) || {}; s.kind = b.dataset.to; const m = (M.sites || []).find(x => x.name === s.name); if(m) m.kind = b.dataset.to; });
-  } else if(what === 'proj'){
-    placeSave(b, 'set_project_status', {p_project: id, p_status: b.dataset.to}, () => { (window.APPPROJECTS.find(p => p.id === id) || {}).status = b.dataset.to; });
-  }
+  const r = e.target.closest && e.target.closest('#settingsBody tr.rowlink'); if(!r) return;
+  if(r.dataset.plSite) plPlaceDialog((window.APPSITES || []).find(s => s.id === +r.dataset.plSite));
+  else if(r.dataset.plProj) plProjectDialog((window.APPPROJECTS || []).find(p => p.id === +r.dataset.plProj));
 });
-el('tabPlaces').onclick = () => { location.hash = '#places'; show('places', true); renderPlaces(); };
+if(window.MYROLE === 'admin') el('tabSettings').style.display = '';
+el('tabSettings').onclick = () => { location.hash = '#settings'; show('settings', true); renderSettings(); };
 
 /* ---- the map on Home: a circle per place; click one to open its machines at the side ---- */
 function homeMapHtml(){
   return `<div class="panel" id="hmWrap" style="margin-top:16px">
     <div style="display:flex;gap:10px;align-items:baseline;flex-wrap:wrap;margin-bottom:8px"><h3 style="margin:0">Where everything is</h3>
       <span class="sm">Click a circle to see its machines. Grey ring = hired in.</span><span style="flex:1"></span>
-      <a class="btn" href="#map">Full map</a><a class="btn" href="#places">Places</a></div>
+      <a class="btn" href="#map">Full map</a><a class="btn" href="#settings">Settings</a></div>
     <div id="hmGrid" style="display:grid;gap:14px;grid-template-columns:minmax(0,1.5fr) minmax(260px,1fr)">
       <div><svg id="hmSvg" style="width:100%;height:auto;display:block;border-radius:10px"></svg></div>
       <div id="hmSide" style="min-width:0"><p class="sm">Pick a place on the map.</p></div></div></div>
