@@ -127,7 +127,7 @@ js = js.replace(o12, "  if(h === 'settings' || h === 'places'){ show('settings',
 o13 = '<nav class="rail" role="tablist" aria-label="Sections">'
 assert head.count(o13) == 1
 head = head.replace(o13, o13 + '\n    <button role="tab" id="tabHome" aria-selected="false" aria-controls="pgHome" style="display:none">\n      <svg viewBox="0 0 17 17" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 8 8.5 3 14.5 8M4 7v7h9V7"/></svg>\n      Home <span class="cnt hot" id="cntHome"></span></button>', 1)
-o13b = '<button role="tab" id="tabPeople"'
+o13b = '</nav>\n\n  <main class="pages">'
 assert head.count(o13b) == 1
 head = head.replace(o13b, '<button role="tab" id="tabSettings" aria-selected="false" aria-controls="pgSettings" style="display:none">\n      <svg viewBox="0 0 17 17" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="8.5" cy="8.5" r="2.5"/><path d="M8.5 1.5v2M8.5 13.5v2M1.5 8.5h2M13.5 8.5h2M3.5 3.5l1.4 1.4M12.1 12.1l1.4 1.4M3.5 13.5l1.4-1.4M12.1 4.9l1.4-1.4"/></svg>\n      Settings</button>\n    ' + o13b, 1)
 o14 = '<section id="pgFleet" role="tabpanel">'
