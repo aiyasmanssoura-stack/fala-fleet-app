@@ -117,11 +117,21 @@
         gps: s(v.gps), note: s(v.board_note),
         onboard: !!(v.site_id || v.driver_id || v.board_status || v.gps),
         driver: drv ? drv.passport_name : '', driver2: drv2 ? drv2.passport_name : '', driver2x: (/^Secondary:/i.test(s(v.board_driver_text)) ? s(v.board_driver_text).replace(/^Secondary:\s*/i, '').split('/').slice(1).map(s).filter(Boolean) : []),
-        trailer: pull ? plateOf(pull) : '', kids,
+        trailer: pull ? plateOf(pull) : '', kids, psince: v.pulled_since ? iso(v.pulled_since) : null, coupLog: [],
         high: plate.toUpperCase().includes('HIGH'),
         dates, tags, upd, log: logOf[v.id] || [], art, artfit, _id: v.id
       };
     });
+
+    // trailer coupling history (17 Nov 2026): the same rows on the truck and on the trailer
+    const plateById = {}; own.forEach((v) => { plateById[v.id] = plateOf(v); });
+    (db.coupling_history || []).forEach((h) => {
+      const tr = plateById[h.trailer_id], tk = plateById[h.truck_id]; if (!tr || !tk) return;
+      const rec = { f: h.from_date ? iso(h.from_date) : null, t: h.to_date ? iso(h.to_date) : null, note: s(h.note) };
+      if (vehicles[tr]) vehicles[tr].coupLog.push(Object.assign({ w: tk }, rec));
+      if (vehicles[tk]) vehicles[tk].coupLog.push(Object.assign({ w: tr }, rec));
+    });
+    Object.values(vehicles).forEach((v) => v.coupLog.sort((x, y) => { const p = x.t || x.f || '', q = y.t || y.f || ''; return p < q ? 1 : p > q ? -1 : 0; }));
 
     const out = Object.keys(vehicles).filter((p) => vehicles[p].fleet === 'Out of fleet').sort();
     const order = Object.keys(vehicles).filter((p) => vehicles[p].fleet !== 'Out of fleet')
