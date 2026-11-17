@@ -788,7 +788,9 @@ th.sortable .sa{display:inline-block;width:1em;font-size:10px;opacity:.9}
   border:1px solid var(--ring);border-radius:9px;padding:8px 12px;font:inherit;
   font-size:13px;color:var(--ink)}
 #pgFleet .fsearch input:focus{outline:2px solid var(--brand);outline-offset:-1px}
-#pgFleet tr.rowlink,#pgPeople tr.rowlink{cursor:pointer}
+#pgFleet tr.rowlink,#pgPeople tr.rowlink,#pgMap tr.rowlink{cursor:pointer}
+#pgMap tr.rowlink:hover td{background:var(--gap-w)}
+#pgMap tr.rowlink:hover td:first-child{color:var(--brand)}
 #pgFleet tr.rowlink:hover td,#pgPeople tr.rowlink:hover td{background:var(--gap-w)}
 #pgFleet tr.rowlink:hover td:first-child,#pgPeople tr.rowlink:hover td:first-child{color:var(--brand)}
 #pgFleet .clsdot{display:inline-block;width:8px;height:8px;border-radius:2px;
@@ -1879,7 +1881,7 @@ let drawLeads = ()=>{};
     /* A hired machine reads exactly like one of ours except for two marks: the
        grey ring on its class dot, and the word HIRED after the plate. Nothing
        else changes, because on the ground nothing else is different. */
-    if(v.hired) return `<tr class="hiredrow">
+    if(v.hired) return `<tr class="hiredrow rowlink" data-h="card" data-plate="${esc(v.plate)}">
       <td class="id"><span class="clsdot hire" style="background:${SC[cix(v.cls)]}"></span>${esc(v.plate)}<span
         class="tag t-hire" title="Rented in — not owned by the fleet">HIRED</span></td>
       <td>${esc(v.type)}</td>
@@ -1887,7 +1889,7 @@ let drawLeads = ()=>{};
       <td class="n"><span class="dash">—</span></td>
       <td class="n"><span class="dash">—</span></td>
       <td class="sm">${esc(v.note)}</td></tr>`;
-    return `<tr class="${kid?'kid':''} ${bad?'bad':''} ${ctx?'ctx':''}">
+    return `<tr class="rowlink ${kid?'kid':''} ${bad?'bad':''} ${ctx?'ctx':''}" data-f="card" data-plate="${esc(v.plate)}">
       <td class="id"><span class="clsdot" style="background:${SC[cix(v.cls)]}"></span>${esc(v.plate)}${tagsFor(v)}</td>
       <td>${esc(v.type)}${code?` <span class="sm">${esc(v.code)}</span>`:''}</td>
       <td>${kid?'<span class="sm">pulled by '+esc(v.coupledTo)+'</span>':who(v)}</td>
@@ -5349,6 +5351,15 @@ function homeMapOpen(name){
     ${ps.length ? `<p class="sm" style="margin:0 0 6px">Projects: ${ps.map(p => `<b>${esc(p.name)}</b> (${p.hired} hired)`).join(' · ')}</p>` : ''}
     <div style="max-height:360px;overflow:auto">${placeMachinesHtml(name)}</div>`;
 }
+
+/* A vehicle in a Map list, or in the list beside the Home map, opens its card (ours: #v/, hired in: #h/). */
+document.addEventListener('click', e => {
+  const n = e.target.closest && e.target.closest('#pgMap [data-plate], #pgHome [data-plate]');
+  if(!n || e.ctrlKey || e.metaKey || e.button !== 0) return;
+  const pre = n.dataset.h === 'card' ? '#h/' : n.dataset.f === 'card' ? '#v/' : '';
+  if(!pre) return;
+  e.preventDefault(); location.hash = pre + encodeURIComponent(n.dataset.plate); scrollTo({top: 0, behavior: 'smooth'});
+});
 
 el('cntRenew').textContent = renewFlagged;
 el('cntMap').textContent = M.fleet;

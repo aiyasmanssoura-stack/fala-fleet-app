@@ -197,3 +197,12 @@ function homeMapOpen(name){
     ${ps.length ? `<p class="sm" style="margin:0 0 6px">Projects: ${ps.map(p => `<b>${esc(p.name)}</b> (${p.hired} hired)`).join(' · ')}</p>` : ''}
     <div style="max-height:360px;overflow:auto">${placeMachinesHtml(name)}</div>`;
 }
+
+/* A vehicle in a Map list, or in the list beside the Home map, opens its card (ours: #v/, hired in: #h/). */
+document.addEventListener('click', e => {
+  const n = e.target.closest && e.target.closest('#pgMap [data-plate], #pgHome [data-plate]');
+  if(!n || e.ctrlKey || e.metaKey || e.button !== 0) return;
+  const pre = n.dataset.h === 'card' ? '#h/' : n.dataset.f === 'card' ? '#v/' : '';
+  if(!pre) return;
+  e.preventDefault(); location.hash = pre + encodeURIComponent(n.dataset.plate); scrollTo({top: 0, behavior: 'smooth'});
+});
