@@ -194,6 +194,10 @@ js = js.replace(o_hb, "      the rest.</p></div>` : '';\n    if(window.hiredBack
 o_pe = "          ${p.Site?`<span class=\"pill p-gap\">${esc(p.Site)}</span>`:''}\n"
 assert js.count(o_pe) == 1
 js = js.replace(o_pe, o_pe + "          ${window.pedBtn ? window.pedBtn(name) : ''}\n", 1)
+# 17 Nov 2026: History of changes on the driver card (Admin only; built in home.js as window.chgHistory)
+o_ph = "    <div class=\"linkrow\"><a class=\"btn\" data-f=\"home\">Fleet home</a></div>`;\n  }\n\n  /* ================= SEARCH"
+assert js.count(o_ph) == 1
+js = js.replace(o_ph, "    ${window.chgHistory && p._id ? window.chgHistory({person: p._id}) : ''}\n" + o_ph, 1)
 o_na = "        ${na.map(esc).join(' \u00b7 ')}.</p>`:''}"
 assert js.count(o_na) == 1
 js = js.replace(o_na, o_na + "\n      ${window.paddBtns ? window.paddBtns(name, na) : ''}", 1)
@@ -222,6 +226,7 @@ os.system(f'cp {here}/geo.js {root}/next/geo.js')
 os.system(f'cp {here}/icons/*.png {root}/next/')
 open(os.path.join(root, 'next', 'manifest.webmanifest'), 'w').write(json.dumps({'name': 'FALA Fleet Registry', 'short_name': 'Fala Fleet', 'start_url': './', 'display': 'standalone', 'background_color': '#16315c', 'theme_color': '#16315c', 'icons': [{'src': 'icon-192.png', 'sizes': '192x192', 'type': 'image/png'}, {'src': 'icon-512.png', 'sizes': '512x512', 'type': 'image/png'}]}))
 os.system(f'cp {here}/xlsx.js {root}/next/xlsx.js')
+os.system(f'cp {here}/xlexport.js {root}/next/xlexport.js')
 out += ('<script src="testdata.js"></script>\n' if test else '') + '<script src="geo.js"></script>\n' + '<script src="icons.js"></script>\n<script src="appdata.js"></script>\n<script>\n' + boot + '\n' + SIGNOUT + '</script>\n' + tail
 open(os.path.join(root, 'next', 'index.html'), 'w', encoding='utf-8').write(out)
 open(os.path.join(root, 'next', 'appdata.js'), 'w').write(open(os.path.join(here, 'appdata.js')).read())

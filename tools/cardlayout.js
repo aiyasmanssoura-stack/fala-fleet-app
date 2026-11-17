@@ -55,7 +55,8 @@
     const [uk,uw,uy] = updLine(v), [pc,ptxt] = pillFor(v);
     const site = D.sites[v.site], kids = v.kids.map(k=>V[k]).filter(Boolean);
     const code = v.code && !['?','NA','N/A'].includes(v.code.toUpperCase());
-    const live = v.dates.filter(d=>state(d) !== 'na');
+    /* 17 Nov 2026: Fujaira permit and FNRC WB tag are needed for 3XL trucks only; on any other class they show only when something is recorded */
+    const live = v.dates.filter(d=>state(d) !== 'na' && !(state(d)==='blank' && (d.k==='Fujaira permit' || d.k==='FNRC WB tag') && v.cls !== '3XL Truck'));
     const ex = live.filter(d=>state(d)==='ex'), so = live.filter(d=>state(d)==='so');
     const rec = nRec(v.plate), tick = rec ? rec.tickets.length : 0, acc = rec ? rec.accidents.length : 0;
     const nTy = Object.keys(v.tyres || {}).length, nSv = (v.svc || []).length, dz = v.diesel || [];
@@ -110,10 +111,7 @@
       ...live.filter(d=>state(d)==='task').map(d=>`<div class="catt"><span class="pill p-task">TASK</span> ${esc(d.k)}</div>`)];
     const attnP = `<div class="panel"><div class="ph"><h3>Needs attention</h3></div>${attn.length ? attn.join('') : '<p class="sm" style="margin:0">Nothing needs attention.</p>'}</div>`;
 
-    const log = (window.APPLOG || []).filter(e=>e.vehicle_id === v._id).slice(0, 6);
-    const activity = IS_ADMIN() ? `<div class="panel"><div class="ph"><h3>Recent activity</h3></div>${log.length
-      ? log.map(e=>`<div class="catt"><b>${esc(e.summary.replace(/^[^:]*:\s*/, ''))}</b><div class="sm">${esc(homeWhen(e.at))} · ${esc(homeWho(e.by_email))}</div></div>`).join('')
-      : '<p class="sm" style="margin:0">No change made in the app yet.</p>'}</div>` : '';
+    const activity = IS_ADMIN() && window.chgHistory ? window.chgHistory({vehicle: v._id}) : '';
 
     const overview = `<div class="cgrid"><div class="ccol">${assign}${details}${v.cls === 'Equipment' && window.mdPanelOwn ? window.mdPanelOwn(v) : ''}</div>
       <div class="ccol">${strip}${gpsCard(v)}${comp}${driverLogPanel(v)}</div><div class="ccol">${attnP}${activity}</div></div>`;

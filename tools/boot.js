@@ -2,6 +2,9 @@
 const SB_URL = "https://lmtwqdoldsxalwshltne.supabase.co";
 const SB_KEY = "sb_publishable_x-C3LN42cBLjH4hHYvNs1Q_ktcSjZYe"; // public key; data is protected by database rules
 const sb = supabase.createClient(SB_URL, SB_KEY);
+/* Refresh shows a plain white "Loading…" until we know if you are signed in; the login box only appears if you are not. */
+const showLoading = () => { const g = document.getElementById('gate'); g.style.background = '#fff'; g.style.display = 'flex'; g.style.opacity = '1'; document.getElementById('gateForm').hidden = true; document.getElementById('gLoad').hidden = false; };
+const showLogin = () => { const g = document.getElementById('gate'); g.style.background = '#16305C'; g.style.display = 'flex'; document.getElementById('gateForm').hidden = false; document.getElementById('gLoad').hidden = true; };
 const gmsg = t => { document.getElementById('gMsg').textContent = t || ''; };
 
 async function pull(table) {
@@ -13,7 +16,6 @@ async function pull(table) {
   }
 }
 async function start() {
-  gmsg('Loading…');
   const names = ['vehicles', 'people', 'sites', 'paper_types', 'papers', 'log_entries', 'suppliers', 'projects', 'hire_terms', 'hire_postings', 'tyres', 'tyre_moves', 'service_jobs', 'fines', 'report_files', 'diesel_lines', 'machine_months', 'vehicle_old_numbers', 'board_history'];
   const t = await Promise.all(names.map(pull));
   const db = {}; names.forEach((n, i) => { db[n] = t[i]; });
@@ -42,16 +44,16 @@ async function start() {
   if (window.MYROLE === 'admin') { try { const r = await sb.from('change_log').select('*').order('id', { ascending: false }).limit(500); if (!r.error) window.APPLOG = r.data; } catch (e) {} }
   const s = document.createElement('script'); s.textContent = document.getElementById('pagejs').textContent;
   document.body.appendChild(s);
-  document.getElementById('gate').remove();
+  { const g = document.getElementById('gate'); g.style.opacity = '0'; setTimeout(() => g.remove(), 280); }
   requestAnimationFrame(() => { try { drawLeads(); } catch (e) {} });
 }
 async function enter() {
-  try { await start(); } catch (e) { console.error(e.stack); gmsg('Could not load: ' + (e.message || e)); document.getElementById('gate').style.display = 'flex'; }
+  try { await start(); } catch (e) { console.error(e.stack); showLogin(); gmsg('Could not load: ' + (e.message || e)); }
 }
 document.getElementById('gateForm').addEventListener('submit', async (ev) => {
   ev.preventDefault(); gmsg('');
   const { error } = await sb.auth.signInWithPassword({ email: gEmail.value.trim(), password: gPass.value });
   if (error) return gmsg(error.message);
-  enter();
+  showLoading(); enter();
 });
-sb.auth.getSession().then(({ data }) => { if (data.session) enter(); });
+sb.auth.getSession().then(({ data }) => { if (data.session) enter(); else showLogin(); }).catch(() => showLogin());

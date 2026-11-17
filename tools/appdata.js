@@ -262,8 +262,8 @@
     ['Registration', 'V', 'Registration', 30, 'Vehicle registration', false, 'reg'],
     ['Insurance', 'V', 'Insurance', 30, 'Vehicle insurance', false, 'ins'],
     ['Airport landside', 'V', 'AMIA landside pass', 10, 'Landside gate pass — vehicle', 'site', 'gate'],
-    ['Fujaira permit', 'V', 'Fujaira permit', 30, 'Permission', false, 'permit'],
-    ['FNRC WB ticket', 'V', 'FNRC WB tag', 30, 'Permission', false, 'permit'],
+    ['Fujaira permit', 'V', 'Fujaira permit', 30, 'Permission', '3xl', 'permit'],
+    ['FNRC WB ticket', 'V', 'FNRC WB tag', 30, 'Permission', '3xl', 'permit'],
     ['Driver licence', 'P', 'Licence Expiry', 30, 'Driver licence', false, 'licence'],
     ['Driver landside', 'P', 'Landside Gate Pass', 10, 'Landside gate pass — driver', 'site', 'gate'],
     ['Airside driving permit', 'P', 'Airside Driving Permit', 30, 'Permission', true, 'airside'],
@@ -307,6 +307,7 @@
         if (c.st === 'blank') {
           if (opt === true) { na++; return; }
           if (opt === 'site' && String(site) !== AIRPORT) { na++; return; }
+          if (opt === '3xl' && sheet === 'V' && r.cls !== '3XL Truck') { na++; return; }   // 17 Nov 2026: needed for 3XL trucks only
           blank++; items.push(Object.assign({}, base, { st: 'blank' })); return;
         }
         const d = dnum(c.v) - T, st = d < 0 ? 'e' : d <= thr ? 'so' : 'ok';
@@ -322,6 +323,7 @@
         const subj = sheet === 'V' ? r.plate : r.passport_name;
         const here = sheet === 'V' ? r._yard : personSite(subj);
         if (opt === 'site' && here !== AIRPORT) return;
+        if (opt === '3xl' && sheet === 'V' && r.cls !== '3XL Truck') return;
         const c = sheet === 'V' ? (r.dates.find((x) => x.k === field) || { st: 'blank' }) : textCell(F.persons[subj][field]);
         if (c.st === 'blank') open.push({ s: String(subj), c: name, kind: 'blank', txt: '' });
       });

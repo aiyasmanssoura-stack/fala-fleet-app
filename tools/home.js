@@ -28,55 +28,68 @@ function renderHome(){
       ${tile('Changes in the log', log.length, log.length >= 500 ? 'latest 500 shown' : 'made in the app')}
     </div>
     ${homeRequests(false)}
-    <div style="margin-top:18px"><div style="display:flex;align-items:baseline;gap:12px;margin-bottom:8px"><h3 style="margin:0;font-size:17px">Change log</h3>
-      <span class="sm">everything changed in the app, newest first · Admin only</span></div>
-      ${log.length ? `<div class="scroll"><table><thead><tr><th>When</th><th>Who</th><th>Type</th><th>What</th></tr></thead>
-        <tbody>${log.map(e=>`<tr><td class="sm" style="white-space:nowrap">${esc(homeWhen(e.at))}</td><td class="sm">${esc(homeWho(e.by_email))}</td>
-          <td><span class="pill p-ok">${esc(e.kind)}</span></td><td>${esc(e.summary)}</td></tr>`).join('')}</tbody></table></div>`
-        : '<p class="sm" style="margin:0">Nothing yet. Changes made with Change driver, Change site, Renew and the history fixes show here.</p>'}</div>`;
+    ${homeChanges(log)}`;
   el('homeXl').onclick = homeExcel;
   homeRefreshLog();
 }
+/* 17 Nov 2026: changes made in the app are notifications. "New changes" lists the ones not yet seen; Seen moves a change to the
+   History on the vehicle / driver card (change_log.seen_at, set by the database function mark_change_seen, Admin only). */
+function homeChanges(log){
+  const fresh = log.filter(e => !e.seen_at);
+  const plateLink = e => { const v = e.vehicle_id ? Object.values(F.vehicles).find(x => x._id === e.vehicle_id) : null;
+    return v ? ` <a data-f="card" data-plate="${esc(v.plate)}" class="sm" style="cursor:pointer;color:var(--brand)">open ${esc(v.plate)} →</a>` : ''; };
+  return `<div style="margin-top:18px"><div style="display:flex;align-items:baseline;gap:12px;margin-bottom:8px;flex-wrap:wrap"><h3 style="margin:0;font-size:17px">New changes ${fresh.length ? `<span class="pill p-warn">${fresh.length}</span>` : ''}</h3>
+      <span class="sm">made in the app · press Seen and it moves to the History on the vehicle or driver card</span><span style="flex:1"></span>
+      ${fresh.length > 1 ? '<button type="button" class="btn" data-seen="all">Mark all seen</button>' : ''}</div>
+    ${fresh.length ? `<div class="scroll"><table><thead><tr><th>When</th><th>Who</th><th>Type</th><th>What</th><th></th></tr></thead>
+      <tbody>${fresh.map(e => `<tr><td class="sm" style="white-space:nowrap">${esc(homeWhen(e.at))}</td><td class="sm">${esc(homeWho(e.by_email))}</td>
+        <td><span class="pill p-ok">${esc(e.kind)}</span></td><td>${esc(e.summary)}${plateLink(e)}</td>
+        <td style="white-space:nowrap"><button type="button" class="btn" data-seen="${e.id}">Seen</button></td></tr>`).join('')}</tbody></table></div>`
+      : '<p class="sm" style="margin:0">No new changes. Everything made in the app is in the History on the vehicle or driver card.</p>'}
+    <div id="seenMsg" class="sm" style="color:var(--crit);margin-top:6px"></div></div>`;
+}
+/* History of changes panel for a vehicle card ({vehicle: id}) or a driver card ({person: id}); Admin only. */
+window.chgHistory = function(o){
+  if((window.MYROLE || '') !== 'admin') return '';
+  const pid = o.person;
+  const mine = (window.APPLOG || []).filter(e => o.vehicle ? e.vehicle_id === o.vehicle
+    : (() => { const d = e.details || {}; return d.person_id === pid || d.old_driver_id === pid || d.new_driver_id === pid; })());
+  const row = e => `<div class="catt"><b>${esc(o.vehicle ? e.summary.replace(/^[^:]*:\s*/, '') : e.summary)}</b>${e.seen_at ? '' : ' <span class="pill p-warn">new</span>'}
+    <div class="sm">${esc(homeWhen(e.at))} · ${esc(homeWho(e.by_email))}</div></div>`;
+  return `<div class="panel"><div class="ph"><h3>History of changes</h3><span class="note">${mine.length} · newest first</span></div>${mine.length
+    ? `<div style="max-height:380px;overflow:auto">${mine.map(row).join('')}</div>`
+    : '<p class="sm" style="margin:0">No change made in the app yet.</p>'}</div>`;
+};
+document.addEventListener('click', async e => {
+  const b = e.target.closest && e.target.closest('[data-seen]'); if(!b) return;
+  const all = b.dataset.seen === 'all', msg = document.getElementById('seenMsg'); b.disabled = true; if(msg) msg.textContent = '';
+  const { error } = await sb.rpc('mark_change_seen', { p_id: all ? null : +b.dataset.seen });
+  if(error){ b.disabled = false; if(msg) msg.textContent = error.message; return; }
+  const now = new Date().toISOString();
+  (window.APPLOG || []).forEach(x => { if(!x.seen_at && (all || x.id === +b.dataset.seen)) x.seen_at = now; });
+  homeBadge(); renderHome();
+});
 /* Read the change log again every time Home opens, so changes made by others (or after this page loaded) show up. */
 async function homeRefreshLog(){
   try{
     const r = await sb.from('change_log').select('*').order('id',{ascending:false}).limit(500);
     if(r.error) return;
     const old = window.APPLOG || [];
-    if(r.data.length !== old.length || (r.data[0] && r.data[0].id) !== (old[0] && old[0].id)){
+    const sig = a => a.map(x => x.id + (x.seen_at ? 's' : 'u')).join(',');
+    if(sig(r.data) !== sig(old)){
       window.APPLOG = r.data;
       if(el('homeBody')) renderHome();
     }
   }catch(e){}
 }
-/* Full backup: one sheet per database table, every column, original ids kept, plus a "Read me" sheet.
+/* Download Excel: a workbook that looks like the app (shown tabs) plus hidden notes for AI tools and the raw tables.
+   The workbook itself is made by xlexport.js (FalaXlsx.make); this part reads the database and saves the file.
    Row counts are checked against the database before the file is saved. */
-const XL_TABLES = [
-  ['vehicles','Every truck, trailer, vehicle and machine (own and hired). driver_id, site_id link to people and sites.'],
-  ['people','Drivers and other staff.'],
-  ['sites','Sites / yards.'],
-  ['projects','Projects.'],
-  ['paper_types','The list of paper names (registration, insurance, permits...).'],
-  ['papers','Every paper of every vehicle: current (is_current = true) and earlier ones.'],
-  ['board_history','Driver and site history of each vehicle (from / to dates).'],
-  ['log_entries','Your history notes.'],
-  ['tyres','Tyres.'],
-  ['tyre_moves','Tyre fitting and removal movements.'],
-  ['service_jobs','Service and maintenance jobs.'],
-  ['fines','Traffic fines.'],
-  ['diesel_lines','Diesel lines.'],
-  ['suppliers','Hire suppliers.'],
-  ['hire_terms','Hired-in terms (rates, periods).'],
-  ['hire_postings','Hired-in postings.'],
-  ['report_files','Which reports were loaded, and the dates they cover.'],
-  ['name_spellings','Name spelling fixes.'],
-  ['app_users','Who can log in and their role (passwords are private to Supabase and cannot be exported).'],
-  ['change_log','Everything changed in the app (who, when, old and new values).']
-];
-async function xlPull(table){
+const XL_CORE = ['vehicles','people','sites','projects','paper_types','papers','hire_terms','hire_postings','suppliers','fines','change_log','tyres','tyre_moves','service_jobs','diesel_lines','log_entries','report_files'];
+async function xlPull(table, orderBy){
   const out = []; let from = 0;
   for(;;){
-    const { data, error } = await sb.from(table).select('*').order('id', { ascending: true }).range(from, from + 999);
+    const { data, error } = await sb.from(table).select('*').order(orderBy || 'id', { ascending: true }).range(from, from + 999);
     if(error) throw new Error(table + ': ' + error.message);
     out.push(...data); if(data.length < 1000) return out; from += 1000;
   }
@@ -86,59 +99,42 @@ async function xlCount(table){
   if(error) throw new Error(table + ': ' + error.message);
   return count;
 }
+async function xlPicture(url){
+  const resp = await fetch(url); if(!resp.ok) throw new Error('HTTP ' + resp.status); const blob = await resp.blob();
+  return await new Promise((ok, no) => { const r = new FileReader(); r.onload = () => ok(r.result); r.onerror = no; r.readAsDataURL(blob); });
+}
 async function homeExcelRun(){
-  const X = window.XLSX, wb = X.utils.book_new(), readme = [], bad = [];
-  const flat = v => v === null || v === undefined ? '' : typeof v === 'object' ? JSON.stringify(v) : v;
-  const sheets = [];
-  for(const [t, what] of XL_TABLES){
+  const XL = window.FalaXlsx, tables = {}, errors = {}, bad = [];
+  for(const [t, ord] of XL.TABLE_ORDER){
     const b = el('homeXl'); if(b) b.textContent = 'Preparing ' + t + '…';
-    const rows = await xlPull(t), dbn = await xlCount(t);
-    const cols = []; rows.forEach(r => Object.keys(r).forEach(k => { if(!cols.includes(k)) cols.push(k); }));
-    const data = rows.map(r => { const o = {}; cols.forEach(k => { o[k] = flat(r[k]); }); return o; });
-    const ws = data.length ? X.utils.json_to_sheet(data, { header: cols }) : X.utils.aoa_to_sheet([['(no rows in this table)']]);
-    sheets.push([t, ws]);
-    const ok = rows.length === dbn;
-    if(!ok) bad.push(t);
-    readme.push({ Sheet: t, 'What it holds': what, 'Rows in the database': dbn, 'Rows in this sheet': rows.length, Match: ok ? 'yes' : 'NO', Columns: cols.join(', ') });
-  }
-  const icons = window.ICONS_DATA || {}, inames = Object.keys(icons).sort();
-  if(inames.length){
-    sheets.push(['drawings', X.utils.json_to_sheet(inames.map(k => ({ drawing: k, picture: icons[k] })), { header: ['drawing', 'picture'] })]);
-    readme.push({ Sheet: 'drawings', 'What it holds': 'The truck drawings used on the cards. "picture" is the PNG as text (data:image/png;base64,...): paste it into a browser address bar to see it, or decode the base64 part to get the file.', 'Rows in the database': '(in the page)', 'Rows in this sheet': inames.length, Match: 'yes', Columns: 'drawing, picture' });
-  }
-  // the app's own pictures (the truck icon and the FALA logo), cut into pieces of 30000 characters because one cell holds at most 32767
-  const logos = [['App icon (truck, 512 px)', 'icon-512.png'], ['FALA logo', 'assets/logo.png']], lrows = [];
-  for(const [nm, url] of logos){
     try{
-      const resp = await fetch(url); if(!resp.ok) throw new Error('HTTP ' + resp.status); const blob = await resp.blob();
-      const uri = await new Promise((ok, no) => { const r = new FileReader(); r.onload = () => ok(r.result); r.onerror = no; r.readAsDataURL(blob); });
-      const row = { name: nm, file: url };
-      for(let i = 0, k = 1; i < uri.length; i += 30000, k++) row['part' + k] = uri.slice(i, i + 30000);
-      lrows.push(row);
-    }catch(e){ lrows.push({ name: nm, file: url, part1: 'could not be read: ' + e.message }); }
+      const rows = await xlPull(t, ord), dbn = await xlCount(t);
+      if(rows.length !== dbn) bad.push(t);
+      tables[t] = rows;
+    }catch(e){
+      if(XL_CORE.includes(t)) throw e;
+      tables[t] = []; errors[t] = e.message;            // a table the Admin cannot read is named in the hidden tabs, the file is still made
+    }
   }
-  const lcols = ['name', 'file']; lrows.forEach(r => Object.keys(r).forEach(k => { if(!lcols.includes(k)) lcols.push(k); }));
-  sheets.push(['app_logos', X.utils.json_to_sheet(lrows, { header: lcols })]);
-  readme.push({ Sheet: 'app_logos', 'What it holds': 'The app icon and the FALA logo as PNG text. Join part1, part2, ... in order (no spaces) to get data:image/png;base64,... : paste it into a browser address bar to see it.', 'Rows in the database': '(in the page)', 'Rows in this sheet': lrows.length, Match: 'yes', Columns: lcols.join(', ') });
-  if(typeof CLASS_ART !== 'undefined'){
-    const m = Object.keys(CLASS_ART).map(k => ({ class: k, drawing: CLASS_ART[k] }));
-    sheets.push(['drawing_by_class', X.utils.json_to_sheet(m, { header: ['class', 'drawing'] })]);
-    readme.push({ Sheet: 'drawing_by_class', 'What it holds': 'Which drawing a class uses when its type has no drawing of its own.', 'Rows in the database': '(in the page)', 'Rows in this sheet': m.length, Match: 'yes', Columns: 'class, drawing' });
-  }
-  const now = new Date();
-  const head = [{ Sheet: 'READ ME', 'What it holds': 'Full copy of the Fala Fleet App database, made ' + now.toLocaleString('en-GB') + ' by ' + ((window.MYEMAIL) || 'admin') + '. One sheet per table, all columns, original ids kept, plus the truck drawings and the app logos: columns ending in _id point to the id column of another sheet: vehicle_id = vehicles, driver_id / second_driver_id / person_id = people, pulled_by_id = vehicles, site_id = sites, project_id = projects, paper_type_id = paper_types, supplier_id = suppliers, tyre_id = tyres, hire_terms_id = hire_terms, report_file_id = report_files.' }];
-  X.utils.book_append_sheet(wb, X.utils.json_to_sheet(head.concat([{}], readme), { header: ['Sheet', 'What it holds', 'Rows in the database', 'Rows in this sheet', 'Match', 'Columns'] }), 'Read me');
-  sheets.forEach(([t, ws]) => X.utils.book_append_sheet(wb, ws, t));
   if(bad.length) throw new Error('Row counts do not match for: ' + bad.join(', ') + '. File not saved.');
+  const logos = [];
+  for(const [nm, url] of [['App icon (truck, 512 px)', 'icon-512.png'], ['FALA logo', 'assets/logo.png']]){
+    try{ logos.push({ name: nm, file: url, uri: await xlPicture(url) }); }catch(e){ logos.push({ name: nm, file: url, uri: '' }); }
+  }
+  let source = ''; try{ source = await (await fetch('xlexport.js')).text(); }catch(e){}
+  const now = new Date(), today = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Dubai' }).format(now);
+  const bytes = await XL.make({ tables, errors, drawings: window.ICONS_DATA || {}, logos, today, madeAt: now, madeBy: window.MYEMAIL || 'admin', source });
   const p = n => String(n).padStart(2, '0');
-  X.writeFile(wb, `Fala Fleet FULL ${now.getFullYear()}-${p(now.getMonth()+1)}-${p(now.getDate())}.xlsx`);
+  const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([bytes], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }));
+  a.download = `Fala Fleet FULL ${now.getFullYear()}-${p(now.getMonth()+1)}-${p(now.getDate())}.xlsx`;
+  document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 4000);
 }
 function homeExcel(){
   const b = el('homeXl'); b.disabled = true; b.textContent = 'Preparing…';
   const done = () => { b.disabled = false; b.textContent = 'Download Excel'; };
   const go2 = () => { homeExcelRun().then(done).catch(e => { alert('Could not make the Excel file: ' + e.message); done(); }); };
-  if(window.XLSX) return go2();
-  const s = document.createElement('script'); s.src = 'xlsx.js'; s.onload = go2;
+  if(window.FalaXlsx) return go2();
+  const s = document.createElement('script'); s.src = 'xlexport.js'; s.onload = go2;
   s.onerror = () => { done(); alert('Could not load the Excel maker.'); };
   document.head.appendChild(s);
 }
@@ -174,7 +170,7 @@ document.addEventListener('click', async e => {
 
 /* number badge on the Home button = requests waiting for the Admin */
 function homeBadge(){
-  const n = (window.APPREQ || []).filter(r => r.status === 'pending').length, c = document.getElementById('cntHome');
+  const n = (window.APPREQ || []).filter(r => r.status === 'pending').length + (window.APPLOG || []).filter(x => !x.seen_at).length, c = document.getElementById('cntHome');
   if(c) c.textContent = (window.MYROLE === 'admin' && n) ? n : '';
 }
 homeBadge();

@@ -375,6 +375,14 @@ footer{color:var(--muted);font-size:11.5px;margin-top:34px;line-height:1.7;max-w
    rows: a grid to scan by shape and colour, a table to compare down a column.
    The choice is remembered per tab in memory only — it is a viewing preference,
    not data, so it does not belong in a file or in the URL. */
+/* sortable tables + column picker (17 Nov 2026) */
+th.sortable{cursor:pointer;user-select:none;white-space:nowrap}
+th.sortable:hover{background:color-mix(in srgb,var(--navy) 85%,#fff)}
+th.sortable .sa{display:inline-block;width:1em;font-size:10px;opacity:.9}
+.colwrap{position:relative}
+.colpop{position:absolute;right:0;top:calc(100% + 6px);z-index:30;background:var(--surface);border:1px solid var(--ring);
+  border-radius:var(--r);box-shadow:0 6px 20px rgba(0,0,0,.14);padding:10px 12px;display:flex;flex-direction:column;gap:6px;min-width:190px;font-size:12.5px}
+.colpop label{display:flex;gap:8px;align-items:center;cursor:pointer}
 .listbar{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin:0 0 13px}
 .listbar .fsearch{margin:0;flex:1;min-width:210px}
 
@@ -1138,6 +1146,7 @@ footer{color:var(--muted);font-size:11.5px;margin-top:34px;line-height:1.7;max-w
   <!-- ---------------- HOME: the team by what they run ---------------- -->
   <div id="uHome">
     <div class="tiles" id="uTiles"></div>
+    <div class="listbar"><button type="button" class="btn" data-u="list" data-grp="all">See everyone in one list →</button></div>
     <div id="uAdd"></div><h2>The team by what they run</h2>
     <p class="cap">Six groups, each in the colour of the machine it runs.</p>
     <div class="groups" id="uGroups"></div>
@@ -1251,8 +1260,9 @@ footer{color:var(--muted);font-size:11.5px;margin-top:34px;line-height:1.7;max-w
     stroke-linecap="round" stroke-linejoin="round"><path d="M8 13V3M3.5 7.5L8 3l4.5 4.5"/></svg>
   Top</button>
 
-<div id="gate" style="position:fixed;inset:0;z-index:9999;background:#16305C;display:flex;align-items:center;justify-content:center;font-family:'IBM Plex Sans',system-ui,sans-serif">
-  <form id="gateForm" style="background:#fff;color:#1B2433;border-radius:10px;padding:26px;width:min(340px,92vw)">
+<div id="gate" style="position:fixed;inset:0;z-index:9999;background:#fff;transition:opacity .25s ease;display:flex;align-items:center;justify-content:center;font-family:'IBM Plex Sans',system-ui,sans-serif">
+  <div id="gLoad" style="color:#8A94A6;font-size:15px;letter-spacing:.02em">Loading…</div>
+  <form id="gateForm" hidden style="background:#fff;color:#1B2433;border-radius:10px;padding:26px;width:min(340px,92vw)">
     <div style="font-weight:700;font-size:20px;color:#16305C;margin-bottom:14px">FALA Fleet Registry</div>
     <input id="gEmail" type="email" placeholder="Email" autocomplete="username" required style="width:100%;margin-bottom:10px;padding:8px;border:1px solid #DDE3EC;border-radius:6px;font:inherit">
     <input id="gPass" type="password" placeholder="Password" autocomplete="current-password" required style="width:100%;margin-bottom:10px;padding:8px;border:1px solid #DDE3EC;border-radius:6px;font:inherit">
@@ -3359,7 +3369,8 @@ let drawLeads = ()=>{};
     const [uk,uw,uy] = updLine(v), [pc,ptxt] = pillFor(v);
     const site = D.sites[v.site], kids = v.kids.map(k=>V[k]).filter(Boolean);
     const code = v.code && !['?','NA','N/A'].includes(v.code.toUpperCase());
-    const live = v.dates.filter(d=>state(d) !== 'na');
+    /* 17 Nov 2026: Fujaira permit and FNRC WB tag are needed for 3XL trucks only; on any other class they show only when something is recorded */
+    const live = v.dates.filter(d=>state(d) !== 'na' && !(state(d)==='blank' && (d.k==='Fujaira permit' || d.k==='FNRC WB tag') && v.cls !== '3XL Truck'));
     const ex = live.filter(d=>state(d)==='ex'), so = live.filter(d=>state(d)==='so');
     const rec = nRec(v.plate), tick = rec ? rec.tickets.length : 0, acc = rec ? rec.accidents.length : 0;
     const nTy = Object.keys(v.tyres || {}).length, nSv = (v.svc || []).length, dz = v.diesel || [];
@@ -3414,10 +3425,7 @@ let drawLeads = ()=>{};
       ...live.filter(d=>state(d)==='task').map(d=>`<div class="catt"><span class="pill p-task">TASK</span> ${esc(d.k)}</div>`)];
     const attnP = `<div class="panel"><div class="ph"><h3>Needs attention</h3></div>${attn.length ? attn.join('') : '<p class="sm" style="margin:0">Nothing needs attention.</p>'}</div>`;
 
-    const log = (window.APPLOG || []).filter(e=>e.vehicle_id === v._id).slice(0, 6);
-    const activity = IS_ADMIN() ? `<div class="panel"><div class="ph"><h3>Recent activity</h3></div>${log.length
-      ? log.map(e=>`<div class="catt"><b>${esc(e.summary.replace(/^[^:]*:\s*/, ''))}</b><div class="sm">${esc(homeWhen(e.at))} · ${esc(homeWho(e.by_email))}</div></div>`).join('')
-      : '<p class="sm" style="margin:0">No change made in the app yet.</p>'}</div>` : '';
+    const activity = IS_ADMIN() && window.chgHistory ? window.chgHistory({vehicle: v._id}) : '';
 
     const overview = `<div class="cgrid"><div class="ccol">${assign}${details}${v.cls === 'Equipment' && window.mdPanelOwn ? window.mdPanelOwn(v) : ''}</div>
       <div class="ccol">${strip}${gpsCard(v)}${comp}${driverLogPanel(v)}</div><div class="ccol">${attnP}${activity}</div></div>`;
@@ -3723,6 +3731,7 @@ let drawLeads = ()=>{};
            ${esc(name)}${p.Driving?` — though the PERSONS sheet says <b>${esc(p.Driving)}</b>`:''}.</p>`}
     </div>
 
+    ${window.chgHistory && p._id ? window.chgHistory({person: p._id}) : ''}
     <div class="linkrow"><a class="btn" data-f="home">Fleet home</a></div>`;
   }
 
@@ -4052,24 +4061,72 @@ let drawLeads = ()=>{};
       <p class="sm" style="margin:7px 0 0">${roles}</p></div>` : '';
   }
 
-  /* The same rows as cards or as a table, exactly as the Fleet tab offers. */
+  /* ---- The same rows as cards or as a table (17 Nov 2026) ----------------
+     The table can be sorted on any column (click the heading; click again to
+     reverse) and the columns are chosen with the Columns button. The choice is
+     kept on this device only. Empty cells always sort last, either way. */
   let peopleView = 'grid';
-
-  function personRowTable(name){
-    const p = PEOPLE[name]; if(!p) return '';
-    const runs = (p.runs||[]).map(r=>esc(r.plate)).join(', ');
-    const st = (p.status||'').toLowerCase();
-    const pill = st.startsWith('on leave') ? '<span class="pill p-warn">On Leave</span>'
-      : st.startsWith('left')||st.startsWith('cancel') ? '<span class="pill p-gap">Left</span>'
-      : '<span class="pill p-ok">Active</span>';
-    return `<tr class="rowlink" data-u="person" data-name="${esc(name)}">
-      <td><b>${esc(name)}</b></td>
-      <td>${esc(p.role)}</td>
-      <td class="sm">${p.code?esc(p.code):'<span class="dash">—</span>'}</td>
-      <td>${p.site?esc(p.site):'<span class="dash">—</span>'}</td>
-      <td>${runs || '<span class="dash">—</span>'}</td>
-      <td>${pill}</td></tr>`;
+  let curNames = [], pSort = null;
+  const LSK = 'fala.cols.people';
+  const secOf = p => (U.groups.find(x=>x.key===p.grp)||{}).lab || '';
+  const licOf = n => { const v = ((F.persons||{})[n]||{})['Licence Expiry'];
+    return (v && v.length===10 && v[4]==='-') ? v : ''; };
+  const stOf = p => { const s=(p.status||'').toLowerCase();
+    return s.startsWith('on leave') ? 'On Leave' : (s.startsWith('left')||s.startsWith('cancel')) ? 'Left' : 'Active'; };
+  const dashS = '<span class="dash">—</span>';
+  const PCOLS = [
+    {k:'name',  l:'Name',           d:1, sv:(n,p)=>n,                       h:(n,p)=>`<b>${esc(n)}</b>`},
+    {k:'role',  l:'Role',           d:1, sv:(n,p)=>p.role,                  h:(n,p)=>esc(p.role)},
+    {k:'sec',   l:'Section',        d:1, sv:(n,p)=>secOf(p),                h:(n,p)=>esc(secOf(p))},
+    {k:'status',l:'Status',         d:1, sv:(n,p)=>stOf(p),
+      h:(n,p)=>{const s=stOf(p); return s==='On Leave'?'<span class="pill p-warn">On Leave</span>':s==='Left'?'<span class="pill p-gap">Left</span>':'<span class="pill p-ok">Active</span>';}},
+    {k:'veh',   l:'Vehicle',        d:1, sv:(n,p)=>(p.runs||[]).map(r=>r.plate).join(', '),
+      h:(n,p)=>(p.runs||[]).map(r=>esc(r.plate)).join(', ') || dashS},
+    {k:'site',  l:'Site',           d:1, sv:(n,p)=>p.site,                  h:(n,p)=>p.site?esc(p.site):dashS},
+    {k:'lic',   l:'Licence expiry', d:1, sv:(n,p)=>licOf(n),
+      h:(n,p)=>{const v=licOf(n); if(!v) return dashS; const l=-ago(v);
+        return fmt.format(parse(v)) + ' ' + (l<0?'<span class="pill p-crit">expired</span>':l<=30?`<span class="pill p-warn">${l}d left</span>`:'');}},
+    {k:'code',  l:'Code',           d:0, sv:(n,p)=>p.code,                 h:(n,p)=>p.code?esc(p.code):dashS},
+    {k:'emp',   l:'Employee no',    d:0, sv:(n,p)=>p.emp,                   h:(n,p)=>p.emp?esc(p.emp):dashS},
+    {k:'since', l:'Start date',     d:0, sv:(n,p)=>p.since,                 h:(n,p)=>p.since?fmt.format(parse(p.since)):dashS},
+  ];
+  const colsOn = () => { let a=null;
+    try{ a = JSON.parse(localStorage.getItem(LSK)); }catch(e){}
+    if(!Array.isArray(a)) a = PCOLS.filter(c=>c.d).map(c=>c.k);
+    a = a.filter(k=>PCOLS.some(c=>c.k===k)); if(!a.includes('name')) a.unshift('name'); return a; };
+  const saveCols = a => { try{ localStorage.setItem(LSK, JSON.stringify(a)); }catch(e){} };
+  function sorted(names){
+    if(!pSort) return names.slice();
+    const c = PCOLS.find(x=>x.k===pSort.k); if(!c) return names.slice();
+    const dir = pSort.dir;
+    return names.slice().sort((a,b)=>{
+      const x = c.sv(a,PEOPLE[a]), y = c.sv(b,PEOPLE[b]);
+      const ex = x==null||x==='', ey = y==null||y==='';
+      if(ex&&ey) return 0; if(ex) return 1; if(ey) return -1;
+      return String(x).localeCompare(String(y),'en',{numeric:true,sensitivity:'base'}) * dir;
+    });
   }
+  function paintTable(){
+    const on = colsOn(), cs = PCOLS.filter(c=>on.includes(c.k)), rows = sorted(curNames);
+    const arrow = c => !pSort||pSort.k!==c.k ? '<span class="sa"></span>' : `<span class="sa on">${pSort.dir>0?'▲':'▼'}</span>`;
+    el('uTable').innerHTML = `<table><thead><tr>${cs.map(c=>
+      `<th class="sortable" data-sk="${c.k}" tabindex="0" aria-sort="${pSort&&pSort.k===c.k?(pSort.dir>0?'ascending':'descending'):'none'}">${esc(c.l)} ${arrow(c)}</th>`).join('')}</tr></thead>
+      <tbody>${rows.map(n=>{ const p=PEOPLE[n]; if(!p) return '';
+        return `<tr class="rowlink" data-u="person" data-name="${esc(n)}">${cs.map(c=>`<td>${c.h(n,p)}</td>`).join('')}</tr>`; }).join('')}</tbody></table>`;
+    el('uTable').querySelectorAll('th[data-sk]').forEach(th=>{
+      const go = ()=>{ const k = th.dataset.sk;
+        pSort = (pSort && pSort.k===k) ? {k, dir:-pSort.dir} : {k, dir:1};
+        paintTable(); paintCards(); };
+      th.onclick = go; th.onkeydown = e=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); go(); } };
+    });
+    el('uColsPop').innerHTML = PCOLS.map(c=>`<label><input type="checkbox" data-ck="${c.k}" ${on.includes(c.k)?'checked':''} ${c.k==='name'?'disabled':''}> ${esc(c.l)}</label>`).join('')
+      + '<button type="button" class="btn" id="uColsReset">Reset</button>';
+    el('uColsPop').querySelectorAll('[data-ck]').forEach(cb=>cb.onchange = ()=>{
+      const a = PCOLS.filter(c=>c.k==='name' || el('uColsPop').querySelector(`[data-ck="${c.k}"]`).checked).map(c=>c.k);
+      saveCols(a); if(pSort && !a.includes(pSort.k)) pSort = null; paintTable(); paintCards(); el('uColsPop').hidden = false; });
+    el('uColsReset').onclick = ()=>{ saveCols(PCOLS.filter(c=>c.d).map(c=>c.k)); pSort = null; paintTable(); paintCards(); el('uColsPop').hidden = false; };
+  }
+  function paintCards(){ el('uCards').innerHTML = sorted(curNames).map(personRow).join(''); }
 
   function setPeopleView(v){
     peopleView = v;
@@ -4077,31 +4134,36 @@ let drawLeads = ()=>{};
     if(!t || !g) return;
     t.hidden = v !== 'list';
     g.hidden = v !== 'grid';
+    el('uColsWrap').hidden = v !== 'list';
     el('uvGrid').setAttribute('aria-pressed', v === 'grid');
     el('uvList').setAttribute('aria-pressed', v === 'list');
   }
 
   function renderList(key){
-    const g = U.groups.find(x=>x.key===key);
+    const g = key === 'all'
+      ? {lab:'All people', what:'Everyone on record, all sections', names:Object.keys(PEOPLE), n:Object.keys(PEOPLE).length}
+      : U.groups.find(x=>x.key===key);
     if(!g){ el('uList').innerHTML = `<div class="empty">No such group.</div>`; return; }
+    curNames = g.names.slice(); pSort = null;
     el('uList').innerHTML = `
       <div class="ucrumb"><a data-u="home">People</a><span>›</span><b>${esc(g.lab)}</b></div>
       <h2>${esc(g.lab)} <span class="sm">— ${g.n}</span></h2>
       <p class="cap">${esc(g.what)}. The plate each person is on comes straight from the
       daily board.${g.blind ? ' The board does not track plant, so an operator with no plate here is very likely working.' : ''}</p>
-      <div class="listbar"><span class="sm" style="flex:1"></span>
+      <div class="listbar"><span class="sm" style="flex:1">Click a column heading to sort; click again to reverse.</span>
+        <div class="colwrap" id="uColsWrap"><button type="button" class="btn" id="uvCols" aria-expanded="false">Columns</button>
+          <div class="colpop" id="uColsPop" hidden></div></div>
         <div class="viewsw" role="group" aria-label="How to show this list">
           <button type="button" id="uvGrid" aria-pressed="true">Grid</button>
           <button type="button" id="uvList" aria-pressed="false">List</button>
         </div></div>
-      <div id="uCards" class="people">${g.names.map(personRow).join('')}</div>
-      <div id="uTable" class="scroll" hidden><table>
-        <thead><tr><th>Name</th><th>Role</th><th>Code</th><th>Site</th>
-          <th>On today</th><th>Status</th></tr></thead>
-        <tbody>${g.names.map(personRowTable).join('')}</tbody></table></div>
+      <div id="uCards" class="people"></div>
+      <div id="uTable" class="scroll" hidden></div>
       <div class="linkrow"><a class="btn" data-u="home">← All groups</a></div>`;
+    paintCards(); paintTable();
     el('uvGrid').onclick = ()=>setPeopleView('grid');
     el('uvList').onclick = ()=>setPeopleView('list');
+    el('uvCols').onclick = ()=>{ const p = el('uColsPop'); p.hidden = !p.hidden; el('uvCols').setAttribute('aria-expanded', !p.hidden); };
     setPeopleView(peopleView);     // the choice survives moving between groups
   }
 
@@ -4821,55 +4883,68 @@ function renderHome(){
       ${tile('Changes in the log', log.length, log.length >= 500 ? 'latest 500 shown' : 'made in the app')}
     </div>
     ${homeRequests(false)}
-    <div style="margin-top:18px"><div style="display:flex;align-items:baseline;gap:12px;margin-bottom:8px"><h3 style="margin:0;font-size:17px">Change log</h3>
-      <span class="sm">everything changed in the app, newest first · Admin only</span></div>
-      ${log.length ? `<div class="scroll"><table><thead><tr><th>When</th><th>Who</th><th>Type</th><th>What</th></tr></thead>
-        <tbody>${log.map(e=>`<tr><td class="sm" style="white-space:nowrap">${esc(homeWhen(e.at))}</td><td class="sm">${esc(homeWho(e.by_email))}</td>
-          <td><span class="pill p-ok">${esc(e.kind)}</span></td><td>${esc(e.summary)}</td></tr>`).join('')}</tbody></table></div>`
-        : '<p class="sm" style="margin:0">Nothing yet. Changes made with Change driver, Change site, Renew and the history fixes show here.</p>'}</div>`;
+    ${homeChanges(log)}`;
   el('homeXl').onclick = homeExcel;
   homeRefreshLog();
 }
+/* 17 Nov 2026: changes made in the app are notifications. "New changes" lists the ones not yet seen; Seen moves a change to the
+   History on the vehicle / driver card (change_log.seen_at, set by the database function mark_change_seen, Admin only). */
+function homeChanges(log){
+  const fresh = log.filter(e => !e.seen_at);
+  const plateLink = e => { const v = e.vehicle_id ? Object.values(F.vehicles).find(x => x._id === e.vehicle_id) : null;
+    return v ? ` <a data-f="card" data-plate="${esc(v.plate)}" class="sm" style="cursor:pointer;color:var(--brand)">open ${esc(v.plate)} →</a>` : ''; };
+  return `<div style="margin-top:18px"><div style="display:flex;align-items:baseline;gap:12px;margin-bottom:8px;flex-wrap:wrap"><h3 style="margin:0;font-size:17px">New changes ${fresh.length ? `<span class="pill p-warn">${fresh.length}</span>` : ''}</h3>
+      <span class="sm">made in the app · press Seen and it moves to the History on the vehicle or driver card</span><span style="flex:1"></span>
+      ${fresh.length > 1 ? '<button type="button" class="btn" data-seen="all">Mark all seen</button>' : ''}</div>
+    ${fresh.length ? `<div class="scroll"><table><thead><tr><th>When</th><th>Who</th><th>Type</th><th>What</th><th></th></tr></thead>
+      <tbody>${fresh.map(e => `<tr><td class="sm" style="white-space:nowrap">${esc(homeWhen(e.at))}</td><td class="sm">${esc(homeWho(e.by_email))}</td>
+        <td><span class="pill p-ok">${esc(e.kind)}</span></td><td>${esc(e.summary)}${plateLink(e)}</td>
+        <td style="white-space:nowrap"><button type="button" class="btn" data-seen="${e.id}">Seen</button></td></tr>`).join('')}</tbody></table></div>`
+      : '<p class="sm" style="margin:0">No new changes. Everything made in the app is in the History on the vehicle or driver card.</p>'}
+    <div id="seenMsg" class="sm" style="color:var(--crit);margin-top:6px"></div></div>`;
+}
+/* History of changes panel for a vehicle card ({vehicle: id}) or a driver card ({person: id}); Admin only. */
+window.chgHistory = function(o){
+  if((window.MYROLE || '') !== 'admin') return '';
+  const pid = o.person;
+  const mine = (window.APPLOG || []).filter(e => o.vehicle ? e.vehicle_id === o.vehicle
+    : (() => { const d = e.details || {}; return d.person_id === pid || d.old_driver_id === pid || d.new_driver_id === pid; })());
+  const row = e => `<div class="catt"><b>${esc(o.vehicle ? e.summary.replace(/^[^:]*:\s*/, '') : e.summary)}</b>${e.seen_at ? '' : ' <span class="pill p-warn">new</span>'}
+    <div class="sm">${esc(homeWhen(e.at))} · ${esc(homeWho(e.by_email))}</div></div>`;
+  return `<div class="panel"><div class="ph"><h3>History of changes</h3><span class="note">${mine.length} · newest first</span></div>${mine.length
+    ? `<div style="max-height:380px;overflow:auto">${mine.map(row).join('')}</div>`
+    : '<p class="sm" style="margin:0">No change made in the app yet.</p>'}</div>`;
+};
+document.addEventListener('click', async e => {
+  const b = e.target.closest && e.target.closest('[data-seen]'); if(!b) return;
+  const all = b.dataset.seen === 'all', msg = document.getElementById('seenMsg'); b.disabled = true; if(msg) msg.textContent = '';
+  const { error } = await sb.rpc('mark_change_seen', { p_id: all ? null : +b.dataset.seen });
+  if(error){ b.disabled = false; if(msg) msg.textContent = error.message; return; }
+  const now = new Date().toISOString();
+  (window.APPLOG || []).forEach(x => { if(!x.seen_at && (all || x.id === +b.dataset.seen)) x.seen_at = now; });
+  homeBadge(); renderHome();
+});
 /* Read the change log again every time Home opens, so changes made by others (or after this page loaded) show up. */
 async function homeRefreshLog(){
   try{
     const r = await sb.from('change_log').select('*').order('id',{ascending:false}).limit(500);
     if(r.error) return;
     const old = window.APPLOG || [];
-    if(r.data.length !== old.length || (r.data[0] && r.data[0].id) !== (old[0] && old[0].id)){
+    const sig = a => a.map(x => x.id + (x.seen_at ? 's' : 'u')).join(',');
+    if(sig(r.data) !== sig(old)){
       window.APPLOG = r.data;
       if(el('homeBody')) renderHome();
     }
   }catch(e){}
 }
-/* Full backup: one sheet per database table, every column, original ids kept, plus a "Read me" sheet.
+/* Download Excel: a workbook that looks like the app (shown tabs) plus hidden notes for AI tools and the raw tables.
+   The workbook itself is made by xlexport.js (FalaXlsx.make); this part reads the database and saves the file.
    Row counts are checked against the database before the file is saved. */
-const XL_TABLES = [
-  ['vehicles','Every truck, trailer, vehicle and machine (own and hired). driver_id, site_id link to people and sites.'],
-  ['people','Drivers and other staff.'],
-  ['sites','Sites / yards.'],
-  ['projects','Projects.'],
-  ['paper_types','The list of paper names (registration, insurance, permits...).'],
-  ['papers','Every paper of every vehicle: current (is_current = true) and earlier ones.'],
-  ['board_history','Driver and site history of each vehicle (from / to dates).'],
-  ['log_entries','Your history notes.'],
-  ['tyres','Tyres.'],
-  ['tyre_moves','Tyre fitting and removal movements.'],
-  ['service_jobs','Service and maintenance jobs.'],
-  ['fines','Traffic fines.'],
-  ['diesel_lines','Diesel lines.'],
-  ['suppliers','Hire suppliers.'],
-  ['hire_terms','Hired-in terms (rates, periods).'],
-  ['hire_postings','Hired-in postings.'],
-  ['report_files','Which reports were loaded, and the dates they cover.'],
-  ['name_spellings','Name spelling fixes.'],
-  ['app_users','Who can log in and their role (passwords are private to Supabase and cannot be exported).'],
-  ['change_log','Everything changed in the app (who, when, old and new values).']
-];
-async function xlPull(table){
+const XL_CORE = ['vehicles','people','sites','projects','paper_types','papers','hire_terms','hire_postings','suppliers','fines','change_log','tyres','tyre_moves','service_jobs','diesel_lines','log_entries','report_files'];
+async function xlPull(table, orderBy){
   const out = []; let from = 0;
   for(;;){
-    const { data, error } = await sb.from(table).select('*').order('id', { ascending: true }).range(from, from + 999);
+    const { data, error } = await sb.from(table).select('*').order(orderBy || 'id', { ascending: true }).range(from, from + 999);
     if(error) throw new Error(table + ': ' + error.message);
     out.push(...data); if(data.length < 1000) return out; from += 1000;
   }
@@ -4879,59 +4954,42 @@ async function xlCount(table){
   if(error) throw new Error(table + ': ' + error.message);
   return count;
 }
+async function xlPicture(url){
+  const resp = await fetch(url); if(!resp.ok) throw new Error('HTTP ' + resp.status); const blob = await resp.blob();
+  return await new Promise((ok, no) => { const r = new FileReader(); r.onload = () => ok(r.result); r.onerror = no; r.readAsDataURL(blob); });
+}
 async function homeExcelRun(){
-  const X = window.XLSX, wb = X.utils.book_new(), readme = [], bad = [];
-  const flat = v => v === null || v === undefined ? '' : typeof v === 'object' ? JSON.stringify(v) : v;
-  const sheets = [];
-  for(const [t, what] of XL_TABLES){
+  const XL = window.FalaXlsx, tables = {}, errors = {}, bad = [];
+  for(const [t, ord] of XL.TABLE_ORDER){
     const b = el('homeXl'); if(b) b.textContent = 'Preparing ' + t + '…';
-    const rows = await xlPull(t), dbn = await xlCount(t);
-    const cols = []; rows.forEach(r => Object.keys(r).forEach(k => { if(!cols.includes(k)) cols.push(k); }));
-    const data = rows.map(r => { const o = {}; cols.forEach(k => { o[k] = flat(r[k]); }); return o; });
-    const ws = data.length ? X.utils.json_to_sheet(data, { header: cols }) : X.utils.aoa_to_sheet([['(no rows in this table)']]);
-    sheets.push([t, ws]);
-    const ok = rows.length === dbn;
-    if(!ok) bad.push(t);
-    readme.push({ Sheet: t, 'What it holds': what, 'Rows in the database': dbn, 'Rows in this sheet': rows.length, Match: ok ? 'yes' : 'NO', Columns: cols.join(', ') });
-  }
-  const icons = window.ICONS_DATA || {}, inames = Object.keys(icons).sort();
-  if(inames.length){
-    sheets.push(['drawings', X.utils.json_to_sheet(inames.map(k => ({ drawing: k, picture: icons[k] })), { header: ['drawing', 'picture'] })]);
-    readme.push({ Sheet: 'drawings', 'What it holds': 'The truck drawings used on the cards. "picture" is the PNG as text (data:image/png;base64,...): paste it into a browser address bar to see it, or decode the base64 part to get the file.', 'Rows in the database': '(in the page)', 'Rows in this sheet': inames.length, Match: 'yes', Columns: 'drawing, picture' });
-  }
-  // the app's own pictures (the truck icon and the FALA logo), cut into pieces of 30000 characters because one cell holds at most 32767
-  const logos = [['App icon (truck, 512 px)', 'icon-512.png'], ['FALA logo', 'assets/logo.png']], lrows = [];
-  for(const [nm, url] of logos){
     try{
-      const resp = await fetch(url); if(!resp.ok) throw new Error('HTTP ' + resp.status); const blob = await resp.blob();
-      const uri = await new Promise((ok, no) => { const r = new FileReader(); r.onload = () => ok(r.result); r.onerror = no; r.readAsDataURL(blob); });
-      const row = { name: nm, file: url };
-      for(let i = 0, k = 1; i < uri.length; i += 30000, k++) row['part' + k] = uri.slice(i, i + 30000);
-      lrows.push(row);
-    }catch(e){ lrows.push({ name: nm, file: url, part1: 'could not be read: ' + e.message }); }
+      const rows = await xlPull(t, ord), dbn = await xlCount(t);
+      if(rows.length !== dbn) bad.push(t);
+      tables[t] = rows;
+    }catch(e){
+      if(XL_CORE.includes(t)) throw e;
+      tables[t] = []; errors[t] = e.message;            // a table the Admin cannot read is named in the hidden tabs, the file is still made
+    }
   }
-  const lcols = ['name', 'file']; lrows.forEach(r => Object.keys(r).forEach(k => { if(!lcols.includes(k)) lcols.push(k); }));
-  sheets.push(['app_logos', X.utils.json_to_sheet(lrows, { header: lcols })]);
-  readme.push({ Sheet: 'app_logos', 'What it holds': 'The app icon and the FALA logo as PNG text. Join part1, part2, ... in order (no spaces) to get data:image/png;base64,... : paste it into a browser address bar to see it.', 'Rows in the database': '(in the page)', 'Rows in this sheet': lrows.length, Match: 'yes', Columns: lcols.join(', ') });
-  if(typeof CLASS_ART !== 'undefined'){
-    const m = Object.keys(CLASS_ART).map(k => ({ class: k, drawing: CLASS_ART[k] }));
-    sheets.push(['drawing_by_class', X.utils.json_to_sheet(m, { header: ['class', 'drawing'] })]);
-    readme.push({ Sheet: 'drawing_by_class', 'What it holds': 'Which drawing a class uses when its type has no drawing of its own.', 'Rows in the database': '(in the page)', 'Rows in this sheet': m.length, Match: 'yes', Columns: 'class, drawing' });
-  }
-  const now = new Date();
-  const head = [{ Sheet: 'READ ME', 'What it holds': 'Full copy of the Fala Fleet App database, made ' + now.toLocaleString('en-GB') + ' by ' + ((window.MYEMAIL) || 'admin') + '. One sheet per table, all columns, original ids kept, plus the truck drawings and the app logos: columns ending in _id point to the id column of another sheet: vehicle_id = vehicles, driver_id / second_driver_id / person_id = people, pulled_by_id = vehicles, site_id = sites, project_id = projects, paper_type_id = paper_types, supplier_id = suppliers, tyre_id = tyres, hire_terms_id = hire_terms, report_file_id = report_files.' }];
-  X.utils.book_append_sheet(wb, X.utils.json_to_sheet(head.concat([{}], readme), { header: ['Sheet', 'What it holds', 'Rows in the database', 'Rows in this sheet', 'Match', 'Columns'] }), 'Read me');
-  sheets.forEach(([t, ws]) => X.utils.book_append_sheet(wb, ws, t));
   if(bad.length) throw new Error('Row counts do not match for: ' + bad.join(', ') + '. File not saved.');
+  const logos = [];
+  for(const [nm, url] of [['App icon (truck, 512 px)', 'icon-512.png'], ['FALA logo', 'assets/logo.png']]){
+    try{ logos.push({ name: nm, file: url, uri: await xlPicture(url) }); }catch(e){ logos.push({ name: nm, file: url, uri: '' }); }
+  }
+  let source = ''; try{ source = await (await fetch('xlexport.js')).text(); }catch(e){}
+  const now = new Date(), today = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Dubai' }).format(now);
+  const bytes = await XL.make({ tables, errors, drawings: window.ICONS_DATA || {}, logos, today, madeAt: now, madeBy: window.MYEMAIL || 'admin', source });
   const p = n => String(n).padStart(2, '0');
-  X.writeFile(wb, `Fala Fleet FULL ${now.getFullYear()}-${p(now.getMonth()+1)}-${p(now.getDate())}.xlsx`);
+  const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([bytes], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }));
+  a.download = `Fala Fleet FULL ${now.getFullYear()}-${p(now.getMonth()+1)}-${p(now.getDate())}.xlsx`;
+  document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 4000);
 }
 function homeExcel(){
   const b = el('homeXl'); b.disabled = true; b.textContent = 'Preparing…';
   const done = () => { b.disabled = false; b.textContent = 'Download Excel'; };
   const go2 = () => { homeExcelRun().then(done).catch(e => { alert('Could not make the Excel file: ' + e.message); done(); }); };
-  if(window.XLSX) return go2();
-  const s = document.createElement('script'); s.src = 'xlsx.js'; s.onload = go2;
+  if(window.FalaXlsx) return go2();
+  const s = document.createElement('script'); s.src = 'xlexport.js'; s.onload = go2;
   s.onerror = () => { done(); alert('Could not load the Excel maker.'); };
   document.head.appendChild(s);
 }
@@ -4967,7 +5025,7 @@ document.addEventListener('click', async e => {
 
 /* number badge on the Home button = requests waiting for the Admin */
 function homeBadge(){
-  const n = (window.APPREQ || []).filter(r => r.status === 'pending').length, c = document.getElementById('cntHome');
+  const n = (window.APPREQ || []).filter(r => r.status === 'pending').length + (window.APPLOG || []).filter(x => !x.seen_at).length, c = document.getElementById('cntHome');
   if(c) c.textContent = (window.MYROLE === 'admin' && n) ? n : '';
 }
 homeBadge();
@@ -5110,6 +5168,9 @@ document.addEventListener('click', e => { const a = e.target.closest && e.target
 const SB_URL = "https://lmtwqdoldsxalwshltne.supabase.co";
 const SB_KEY = "sb_publishable_x-C3LN42cBLjH4hHYvNs1Q_ktcSjZYe"; // public key; data is protected by database rules
 const sb = supabase.createClient(SB_URL, SB_KEY);
+/* Refresh shows a plain white "Loading…" until we know if you are signed in; the login box only appears if you are not. */
+const showLoading = () => { const g = document.getElementById('gate'); g.style.background = '#fff'; g.style.display = 'flex'; g.style.opacity = '1'; document.getElementById('gateForm').hidden = true; document.getElementById('gLoad').hidden = false; };
+const showLogin = () => { const g = document.getElementById('gate'); g.style.background = '#16305C'; g.style.display = 'flex'; document.getElementById('gateForm').hidden = false; document.getElementById('gLoad').hidden = true; };
 const gmsg = t => { document.getElementById('gMsg').textContent = t || ''; };
 
 async function pull(table) {
@@ -5121,7 +5182,6 @@ async function pull(table) {
   }
 }
 async function start() {
-  gmsg('Loading…');
   const names = ['vehicles', 'people', 'sites', 'paper_types', 'papers', 'log_entries', 'suppliers', 'projects', 'hire_terms', 'hire_postings', 'tyres', 'tyre_moves', 'service_jobs', 'fines', 'report_files', 'diesel_lines', 'machine_months', 'vehicle_old_numbers', 'board_history'];
   const t = await Promise.all(names.map(pull));
   const db = {}; names.forEach((n, i) => { db[n] = t[i]; });
@@ -5150,19 +5210,19 @@ async function start() {
   if (window.MYROLE === 'admin') { try { const r = await sb.from('change_log').select('*').order('id', { ascending: false }).limit(500); if (!r.error) window.APPLOG = r.data; } catch (e) {} }
   const s = document.createElement('script'); s.textContent = document.getElementById('pagejs').textContent;
   document.body.appendChild(s);
-  document.getElementById('gate').remove();
+  { const g = document.getElementById('gate'); g.style.opacity = '0'; setTimeout(() => g.remove(), 280); }
   requestAnimationFrame(() => { try { drawLeads(); } catch (e) {} });
 }
 async function enter() {
-  try { await start(); } catch (e) { console.error(e.stack); gmsg('Could not load: ' + (e.message || e)); document.getElementById('gate').style.display = 'flex'; }
+  try { await start(); } catch (e) { console.error(e.stack); showLogin(); gmsg('Could not load: ' + (e.message || e)); }
 }
 document.getElementById('gateForm').addEventListener('submit', async (ev) => {
   ev.preventDefault(); gmsg('');
   const { error } = await sb.auth.signInWithPassword({ email: gEmail.value.trim(), password: gPass.value });
   if (error) return gmsg(error.message);
-  enter();
+  showLoading(); enter();
 });
-sb.auth.getSession().then(({ data }) => { if (data.session) enter(); });
+sb.auth.getSession().then(({ data }) => { if (data.session) enter(); else showLogin(); }).catch(() => showLogin());
 
 document.getElementById('signOutBtn').addEventListener('click', async () => { try { await sb.auth.signOut(); } catch (e) {} location.reload(); });
 </script>
