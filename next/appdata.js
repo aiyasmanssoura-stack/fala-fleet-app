@@ -511,7 +511,7 @@
         svcOnUs: ms.filter((r) => !r.svcInc).length, dieselOurs: ms.filter((r) => r.dieselOurs).length,
         lpos: [...new Set(ms.map((r) => r.lpo).filter(Boolean))].sort(), plates: ms.map((r) => r.plate) }; });
     const projects = tally(rows.map((r) => r.proj)).map(([proj, n]) => { const ms = rows.filter((r) => r.proj === proj);
-      return { proj, site: ms[0].site, n, rate: ms.reduce((x, r) => x + (r.rate || 0), 0), firms: new Set(ms.map((r) => r.firm)).size,
+      return { proj, status: ((db.projects || []).find((x) => x.name === proj) || {}).status || 'current', site: ms[0].site, n, rate: ms.reduce((x, r) => x + (r.rate || 0), 0), firms: new Set(ms.map((r) => r.firm)).size,
         dieselOurs: ms.filter((r) => r.dieselOurs).length, types: tally(ms.map((r) => r.type)) }; });
     const groups = ['Six Wheel', 'Equipment', 'Other Vehicle'].map((cls) => { const ms = rows.filter((r) => r.cls === cls); if (!ms.length) return null;
       return { cls, n: ms.length, firms: new Set(ms.map((r) => r.firm)).size, rate: ms.reduce((x, r) => x + (r.rate || 0), 0), art: CLASS_ART[cls] || '',

@@ -28,8 +28,9 @@
     el2.style.cssText = 'position:fixed;inset:0;background:rgba(20,30,50,.45);z-index:1000;display:flex;align-items:center;justify-content:center;padding:16px;overflow:auto';
     const fld = 'font:inherit;padding:11px 12px;border:1px solid var(--line,#c9c6bb);border-radius:8px;min-height:44px;box-sizing:border-box;width:100%;background:var(--card,#fff);color:inherit';
     const lab = 'display:block;font-weight:600;font-size:13px;margin-bottom:5px';
-    const sites = () => (window.APPSITES || []).slice().sort((a, b) => a.name < b.name ? -1 : 1).filter(s => s.name !== v._yard);
-    const opts = () => '<option value="">Choose…</option>' + sites().map(s => `<option value="${s.id}">${esc(s.name)}</option>`).join('');
+    const sites = () => (window.APPSITES || []).slice().sort((a, b) => a.name < b.name ? -1 : 1).filter(s => s.name !== v._yard && s.kind !== 'archive');
+    const KG = [['permanent', 'Permanent'], ['current', 'Current projects'], ['sister', 'Sister company'], ['none', 'No map position']];
+    const opts = () => '<option value="">Choose…</option>' + KG.map(([k, l]) => { const g = sites().filter(s => (s.kind || 'current') === k); return g.length ? `<optgroup label="${l}">` + g.map(s => `<option value="${s.id}">${esc(s.name)}</option>`).join('') + '</optgroup>' : ''; }).join('');
     el2.innerHTML = `<div role="dialog" aria-modal="true" aria-labelledby="chgT" style="width:min(560px,100%);background:var(--card,#fff);color:var(--ink,inherit);border-radius:16px;border:1px solid var(--line,#d9d6cc);padding:24px 26px;box-sizing:border-box;display:flex;flex-direction:column;gap:14px">
       <div><div class="sm" style="letter-spacing:.08em;text-transform:uppercase;font-weight:600">Change site</div>
         <h2 id="chgT" style="margin:4px 0 0;font-size:22px">${esc(v.plate)} <span class="sm" style="font-weight:400">· ${esc(v.type || v.cls)}</span></h2></div>

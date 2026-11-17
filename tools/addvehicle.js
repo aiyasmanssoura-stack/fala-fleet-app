@@ -13,7 +13,7 @@
     const f = (id, l, t, list) => `<div><label for="${id}" style="${lab}">${l}</label><input id="${id}" type="${t||'text'}" ${list?`list="${id}L"`:''} style="${fld}">${list?`<datalist id="${id}L">${list.map(x=>`<option value="${esc(x)}">`).join('')}</datalist>`:''}</div>`;
     const sel = (id, l, opts, first) => `<div><label for="${id}" style="${lab}">${l}</label><select id="${id}" style="${fld}">${first?`<option value="">${first}</option>`:''}${opts.map(o=>`<option value="${esc(o[0])}">${esc(o[1])}</option>`).join('')}</select></div>`;
     const classes = ['3XL Truck','Six Wheel','Trailer','Special Trailer','Equipment','Car / Light Vehicle','Other Vehicle'];
-    const sites = (window.APPSITES||[]).slice().sort((a,b)=>a.name<b.name?-1:1).map(s=>[s.id,s.name]);
+    const sites = (window.APPSITES||[]).filter(s=>s.kind!=='archive').slice().sort((a,b)=>a.name<b.name?-1:1).map(s=>[s.id,s.name]);
     const drivers = (window.APPPEOPLE||[]).filter(p=>p.status==='Active'&&p.role).sort((a,b)=>a.passport_name<b.passport_name?-1:1).map(p=>[p.id,p.passport_name]);
     el2.innerHTML = `<div role="dialog" aria-modal="true" style="width:min(600px,100%);background:var(--card,#fff);color:var(--ink,inherit);border-radius:16px;border:1px solid var(--line,#d9d6cc);padding:24px 26px;box-sizing:border-box;display:flex;flex-direction:column;gap:14px;max-height:92vh;overflow:auto">
       <div><div class="sm" style="letter-spacing:.08em;text-transform:uppercase;font-weight:600">Add vehicle</div>

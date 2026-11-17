@@ -1,0 +1,3 @@
+-- Applied 18 Nov 2026 (note-style copy; the functions live in the database).
+-- set_place_kind(p_site, p_kind): Admin only; kinds permanent|current|archive|sister|none; writes change_log kind 'place'.
+-- set_project_status(p_project, p_status): Admin only; current|archived; writes change_log kind 'project'.

@@ -114,21 +114,25 @@ o9 = "    ${tagRows.length?`<div class=\"panel\">"
 assert js.count(o9) == 1
 js = js.replace(o9, "    ${paperHistPanel(v)}\n" + o9, 1)
 HOME = open(os.path.join(here, "home.js"), encoding="utf-8").read()
+HOME += "\n" + open(os.path.join(here, "places.js"), encoding="utf-8").read() + "\n"
 o10 = "/* ============================= tabs ============================= */\nel('cntRenew')"
 assert js.count(o10) == 1
 js = js.replace(o10, "/* ============================= tabs ============================= */\n" + HOME + "el('cntRenew')", 1)
 o11 = "lists:['tabLists','pgLists']};"
 assert js.count(o11) == 1
-js = js.replace(o11, "lists:['tabLists','pgLists'], home:['tabHome','pgHome']};", 1)
+js = js.replace(o11, "lists:['tabLists','pgLists'], home:['tabHome','pgHome'], places:['tabPlaces','pgPlaces']};", 1)
 o12 = "  if(h === 'lists' || h.startsWith('lists/'))"
 assert js.count(o12) == 1
-js = js.replace(o12, "  if((h === '' || h === 'home') && window.MYROLE === 'admin'){ show('home', false); renderHome(); return; }\n" + o12, 1)
+js = js.replace(o12, "  if(h === 'places'){ show('places', false); renderPlaces(); return; }\n  if((h === '' || h === 'home') && window.MYROLE === 'admin'){ show('home', false); renderHome(); return; }\n" + o12, 1)
 o13 = '<nav class="rail" role="tablist" aria-label="Sections">'
 assert head.count(o13) == 1
 head = head.replace(o13, o13 + '\n    <button role="tab" id="tabHome" aria-selected="false" aria-controls="pgHome" style="display:none">\n      <svg viewBox="0 0 17 17" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 8 8.5 3 14.5 8M4 7v7h9V7"/></svg>\n      Home <span class="cnt hot" id="cntHome"></span></button>', 1)
+o13b = '<button role="tab" id="tabPeople"'
+assert head.count(o13b) == 1
+head = head.replace(o13b, '<button role="tab" id="tabPlaces" aria-selected="false" aria-controls="pgPlaces">\n      <svg viewBox="0 0 17 17" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="5.5" height="5.5" rx="1"/><rect x="9.5" y="2" width="5.5" height="5.5" rx="1"/><rect x="2" y="9.5" width="5.5" height="5.5" rx="1"/><rect x="9.5" y="9.5" width="5.5" height="5.5" rx="1"/></svg>\n      Places</button>\n    ' + o13b, 1)
 o14 = '<section id="pgFleet" role="tabpanel">'
 assert head.count(o14) == 1
-head = head.replace(o14, '<section id="pgHome" role="tabpanel" hidden><div id="homeBody"></div></section>\n\n' + o14, 1)
+head = head.replace(o14, '<section id="pgHome" role="tabpanel" hidden><div id="homeBody"></div></section>\n<section id="pgPlaces" role="tabpanel" hidden><div id="placesBody"></div></section>\n\n' + o14, 1)
 o15 = "    el('fCard').innerHTML = `\n    <div class=\"crumb\"><a data-f=\"home\">Fleet</a><span>&rsaquo;</span>\n      <a data-f=\"list\" data-cls=\"${esc(v.cls)}\">"
 assert js.count(o15) == 1
 js = js.replace(o15, "    el('fCard').innerHTML = `\n    <p style=\"margin:0 0 10px\"><a class=\"btn\" data-f=\"list\" data-back=\"1\" data-cls=\"${esc(v.cls)}\">&larr; Back to ${esc(v.cls)}</a></p>\n    <div class=\"crumb\"><a data-f=\"home\">Fleet</a><span>&rsaquo;</span>\n      <a data-f=\"list\" data-cls=\"${esc(v.cls)}\">", 1)

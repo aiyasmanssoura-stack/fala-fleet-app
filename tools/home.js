@@ -27,9 +27,11 @@ function renderHome(){
       ${tile('Fines', FINES.tally.n, 'on record')}
       ${tile('Changes in the log', log.length, log.length >= 500 ? 'latest 500 shown' : 'made in the app')}
     </div>
+    ${homeMapHtml()}
     ${homeRequests(false)}
     ${homeChanges(log)}`;
   el('homeXl').onclick = homeExcel;
+  homeMapInit();
   homeRefreshLog();
 }
 /* 17 Nov 2026: changes made in the app are notifications. "New changes" lists the ones not yet seen; Seen moves a change to the

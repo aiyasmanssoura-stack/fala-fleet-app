@@ -30,7 +30,7 @@ async function start() {
   const X = window.TESTDATA || {};
   const F = AppData.buildF(db, iso);
   window.APPDATA = Object.assign({}, X, { F, R: AppData.buildR(F, db, iso), M: AppData.buildM(F, db, iso, window.GEO), PPL: AppData.buildPPL(F), HIRE: AppData.buildHIRE(db, iso), FINES: AppData.buildFINES(db) });   // HIRE, FINES: next steps
-  window.APPPEOPLE = db.people; window.APPSITES = db.sites; window.APPSUPPLIERS = (db.suppliers || []).map(x => ({ id: x.id, name: x.name }));
+  window.APPPEOPLE = db.people; window.APPSITES = db.sites; window.APPPROJECTS = db.projects; window.APPSUPPLIERS = (db.suppliers || []).map(x => ({ id: x.id, name: x.name }));
   try { const u = (await sb.auth.getUser()).data.user; const r = await sb.from('app_users').select('role').eq('id', u.id).maybeSingle(); window.MYROLE = r.data ? r.data.role : ''; } catch (e) { window.MYROLE = ''; }
   window.APPLOG = [];
   // old plate / asset numbers: search for an old number leads to the vehicle; the Machine details box lists them

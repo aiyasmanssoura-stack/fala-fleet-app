@@ -4,7 +4,7 @@
    right-click shows "Open in new tab" and "Copy link". The look of the page is not changed. */
 (function(){
   const enc = encodeURIComponent, base = () => location.href.split('#')[0];
-  const TAB = {tabHome:'#home', tabFleet:'#fleet', tabRenew:'#renewals', tabMap:'#map', tabPeople:'#people', tabHired:'#hired', tabFines:'#fines', tabLists:'#lists'};
+  const TAB = {tabHome:'#home', tabFleet:'#fleet', tabRenew:'#renewals', tabMap:'#map', tabPlaces:'#places', tabPeople:'#people', tabHired:'#hired', tabFines:'#fines', tabLists:'#lists'};
   function hashFor(n){
     if(!n || !n.closest) return '';
     const q = n.closest('.qrow[data-hash]'); if(q) return q.dataset.hash;
