@@ -11,7 +11,7 @@ function placeIsAdmin(){ return window.MYROLE === 'admin'; }
 function placeFlat(list){ return list.flatMap(v => [v, ...(v.kids || [])]); }
 function placeCounts(name){
   const s = (M.sites || []).find(x => x.name === name); if(!s) return {ours: 0, hired: 0, list: []};
-  const all = placeFlat(s.v || []);
+  const all = placeFlat(s.held || s.v || []);
   return {ours: all.filter(v => !v.hired).length, hired: all.filter(v => v.hired).length, list: all};
 }
 function placeMachinesHtml(name){
