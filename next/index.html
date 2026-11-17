@@ -5167,36 +5167,44 @@ function placeProjects(site){
   const rows = (typeof HIRE !== 'undefined' && HIRE.rows) ? HIRE.rows : [];
   return ps.map(p => ({id: p.id, name: p.name, status: p.status || 'current', hired: rows.filter(r => r.proj === p.name).length}));
 }
+function placePanel(s){
+  const admin = placeIsAdmin(), c = placeCounts(s.name), ps = placeProjects(s), k = s.kind || 'current', n = c.ours + c.hired;
+  const kl = (PLACE_KINDS.find(x => x[0] === k) || [k, k])[1];
+  const btn = admin ? (k === 'archive'
+    ? `<button type="button" class="btn" data-pl="kind" data-id="${s.id}" data-to="current">Restore place</button>`
+    : (k === 'current' ? `<button type="button" class="btn" data-pl="arch" data-id="${s.id}" data-n="${n}">Archive place</button>` : '')) : '';
+  return `<div class="panel" style="position:sticky;top:10px">
+    <div style="display:flex;gap:10px;align-items:baseline;flex-wrap:wrap"><h3 style="margin:0">${esc(s.name)}</h3><span class="pill p-gap">${esc(kl)}</span><span style="flex:1"></span>${btn}</div>
+    <p class="sm" style="margin:4px 0 6px">${esc(s.what_it_is || '')}</p>
+    <p class="sm" style="margin:0 0 8px"><b>${c.ours}</b> ours${c.hired ? ` · <b>${c.hired}</b> hired in` : ''}</p>
+    ${k === 'archive' && n ? `<p class="sm" style="margin:0 0 8px;color:var(--crit,#b3261e)"><b>${n}</b> machine${n === 1 ? ' is' : 's are'} still recorded here — move ${n === 1 ? 'it' : 'them'} to their real place.</p>` : ''}
+    ${s.lat == null && k !== 'none' ? '<p class="sm" style="margin:0 0 8px">No position on the map yet.</p>' : ''}
+    ${ps.length ? `<div style="margin:0 0 10px"><div class="sm" style="font-weight:600;margin-bottom:4px">Projects</div>${ps.map(p => `<div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;border-top:1px solid var(--line,#e5e2d9);padding:6px 0">
+        <span style="font-weight:600">${esc(p.name)}</span>${p.status === 'archived' ? ' <span class="pill p-crit">Archived</span>' : ''}
+        <span class="sm">${p.hired} hired machine${p.hired === 1 ? '' : 's'}</span><span style="flex:1"></span>
+        ${admin ? (p.status === 'archived'
+          ? `<button type="button" class="btn" data-pl="proj" data-id="${p.id}" data-to="current">Restore project</button>`
+          : `<button type="button" class="btn" data-pl="parch" data-id="${p.id}" data-n="${p.hired}">Archive project</button>`) : ''}</div>`).join('')}</div>` : ''}
+    <div data-pl-msg style="margin:0 0 8px"></div>
+    ${n ? `<div class="sm" style="font-weight:600;margin-bottom:4px">Machines</div><div style="max-height:380px;overflow:auto">${placeMachinesHtml(s.name)}</div>` : '<p class="sm">No machines here.</p>'}</div>`;
+}
 function renderPlaces(){
   const sites = (window.APPSITES || []).slice().sort((a, b) => a.name < b.name ? -1 : 1);
-  const admin = placeIsAdmin();
-  const card = s => {
-    const c = placeCounts(s.name), ps = placeProjects(s), k = s.kind || 'current';
-    const btn = admin ? (k === 'archive'
-      ? `<button type="button" class="btn" data-pl="kind" data-id="${s.id}" data-to="current">Restore place</button>`
-      : (k === 'current' ? `<button type="button" class="btn" data-pl="arch" data-id="${s.id}" data-n="${c.ours + c.hired}">Archive place</button>` : '')) : '';
-    return `<div class="panel" data-site="${esc(s.name)}" style="${k === 'archive' ? 'opacity:.85;border-style:dashed' : ''}">
-      <div style="display:flex;gap:10px;align-items:baseline;flex-wrap:wrap">
-        <h3 style="margin:0">${esc(s.name)}</h3>
-        <span class="sm">${esc(s.what_it_is || '')}</span><span style="flex:1"></span>
-        <span class="sm"><b>${c.ours}</b> ours${c.hired ? ` · <b>${c.hired}</b> hired in` : ''}</span>${btn}</div>
-      ${k === 'archive' && (c.ours + c.hired) ? `<p class="sm" style="margin:8px 0 0;color:var(--crit,#b3261e)"><b>${c.ours + c.hired}</b> machine${c.ours + c.hired === 1 ? ' is' : 's are'} still recorded here — move ${c.ours + c.hired === 1 ? 'it' : 'them'} to their real place.</p>` : ''}
-      ${s.lat == null && k !== 'none' ? '<p class="sm" style="margin:8px 0 0">No position on the map yet.</p>' : ''}
-      ${ps.length ? `<div style="margin-top:10px;display:flex;flex-direction:column;gap:6px">${ps.map(p => `<div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;border-top:1px solid var(--line,#e5e2d9);padding-top:6px">
-          <span style="font-weight:600">${esc(p.name)}</span>${p.status === 'archived' ? ' <span class="pill p-crit">Archived</span>' : ''}
-          <span class="sm">${p.hired} hired machine${p.hired === 1 ? '' : 's'}</span><span style="flex:1"></span>
-          ${admin ? (p.status === 'archived'
-            ? `<button type="button" class="btn" data-pl="proj" data-id="${p.id}" data-to="current">Restore project</button>`
-            : `<button type="button" class="btn" data-pl="parch" data-id="${p.id}" data-n="${p.hired}">Archive project</button>`) : ''}</div>`).join('')}</div>` : ''}
-      ${(c.ours + c.hired) ? `<details style="margin-top:10px"><summary class="sm" style="cursor:pointer;font-weight:600">Show the ${c.ours + c.hired} machine${c.ours + c.hired === 1 ? '' : 's'}</summary>${placeMachinesHtml(s.name)}</details>` : ''}
-      <div data-pl-msg style="margin-top:8px"></div></div>`;
-  };
+  const sel = window.PLSEL && sites.find(x => x.name === window.PLSEL);
+  const row = s => { const c = placeCounts(s.name), k = s.kind || 'current', ps = placeProjects(s), n = c.ours + c.hired;
+    return `<tr class="rowlink" data-site="${esc(s.name)}" style="cursor:pointer${sel && sel.name === s.name ? ';background:var(--soft,#f4f2ec)' : ''}">
+      <td class="id"><b>${esc(s.name)}</b>${k === 'archive' && n ? ' <span class="pill p-crit">machines still here</span>' : ''}</td>
+      <td>${esc((PLACE_KINDS.find(x => x[0] === k) || [k, k])[1])}</td><td class="n">${c.ours}</td><td class="n">${c.hired}</td>
+      <td class="sm">${ps.map(p => esc(p.name) + (p.status === 'archived' ? ' (archived)' : '')).join(', ')}</td></tr>`; };
+  const body = PLACE_KINDS.map(([k, t]) => { const g = sites.filter(x => (x.kind || 'current') === k); if(!g.length) return '';
+    return `<tr class="secthead"><td colspan="5">${t} · ${g.length}</td></tr>` + g.map(row).join(''); }).join('');
   el('placesBody').innerHTML = `
-    <div style="margin-bottom:14px"><h2 style="margin:0">Places</h2>
-      <p class="sm" style="margin:4px 0 0">One list for the map, our vehicles and Hired In. ${admin ? 'An Admin can archive a finished project or place; its history stays.' : ''}</p></div>
-    ${PLACE_KINDS.map(([k, t, note]) => { const g = sites.filter(s => (s.kind || 'current') === k); if(!g.length) return '';
-      return `<h3 style="margin:18px 0 2px">${t} <span class="sm" style="font-weight:400">· ${g.length}</span></h3><p class="sm" style="margin:0 0 8px">${note}</p>
-        <div style="display:grid;gap:10px;grid-template-columns:repeat(auto-fill,minmax(min(420px,100%),1fr))">${g.map(card).join('')}</div>`; }).join('')}`;
+    <div style="margin-bottom:12px"><h2 style="margin:0">Places</h2>
+      <p class="sm" style="margin:4px 0 0">One list for the map, our vehicles and Hired In. Click a place to see its projects and machines${placeIsAdmin() ? ' and to archive it' : ''}.</p></div>
+    <div id="plGrid" style="display:grid;gap:14px;grid-template-columns:minmax(0,1.3fr) minmax(280px,1fr);align-items:start">
+      <div class="scroll"><table><thead><tr><th>Place</th><th>Kind</th><th class="n">Ours</th><th class="n">Hired in</th><th>Projects</th></tr></thead><tbody>${body}</tbody></table></div>
+      <div id="plSide">${sel ? placePanel(sel) : '<p class="sm">Click a place in the list.</p>'}</div></div>
+    <style>@media(max-width:820px){#plGrid{grid-template-columns:1fr!important}}#pgPlaces tr.rowlink:hover td{background:var(--soft,#f4f2ec)}</style>`;
 }
 async function placeSave(btn, fn, args, after){
   const box = btn.closest('.panel').querySelector('[data-pl-msg]'); btn.disabled = true; box.textContent = '';
@@ -5205,6 +5213,8 @@ async function placeSave(btn, fn, args, after){
   after(data); renderPlaces();
 }
 document.addEventListener('click', e => {
+  const r = e.target.closest && e.target.closest('#pgPlaces tr.rowlink');
+  if(r && !e.target.closest('a,button')){ window.PLSEL = r.dataset.site; renderPlaces(); return; }
   const b = e.target.closest && e.target.closest('[data-pl]'); if(!b || !el('placesBody').contains(b)) return;
   const id = +b.dataset.id, what = b.dataset.pl;
   if(what === 'arch' || what === 'parch'){
@@ -5350,7 +5360,7 @@ apply(location.hash.slice(1));
     if(t==='grid'||t==='list'){ b.innerHTML = IC[t]; b.title = b.getAttribute('aria-label') || (t==='grid'?'Grid':'List'); b.setAttribute('aria-label', t==='grid'?'Grid':'List'); b.classList.add('ic'); }
   });
 
-  const WL = ['pgFleet','pgRenew','pgHired','pgFines','pgLists'];
+  const WL = ['pgFleet','pgRenew','pgHired','pgFines','pgLists','pgPlaces'];
   const MON = {jan:0,feb:1,mar:2,apr:3,may:4,jun:5,jul:6,aug:7,sep:8,oct:9,nov:10,dec:11};
   const sorts = {};                                  // key -> {ci, dir}
   const lab = th => th.textContent.replace(/[▲▼]/g,'').replace(/\s+/g,' ').trim();
