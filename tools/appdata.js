@@ -375,7 +375,7 @@
         dsince: v.dsince, driver2: v.driver2, trailer: v.kids[0] || (onb ? v._coupled : ''), gps: v.gps, note: v.note,
         src: onb ? 'board' : 'vehicles', cls: v.cls, type: v.type, code: v.code, cond: v.cond, cnote: v.cnote,
         fleet: v.fleet, kids: [], since_d: days(v.since), dsince_d: days(v.dsince), high: v.high };
-      if (onb) { r.garage = gar; r.driver2x = v.driver2x; if (gar) r.yard = v._yard; }
+      if (onb) { r.garage = gar; r.driver2x = v.driver2x; if (gar) { r.yard = v._yard; if (v._yard) r.site = v._yard; } }   // 18 Nov 2026: stays at its yard, tagged — no separate garage place
       return r;
     };
     const R = {}; vs.forEach((v) => { R[v.plate] = rec(v); });
@@ -383,13 +383,6 @@
     vs.forEach((v) => { v.kids.forEach((k) => { const kid = R[k]; if (kid && k !== v.plate) { kid.coupledTo = v.plate; kid.site = R[v.plate].site || kid.site; R[v.plate].kids.push(kid); kidSet.add(k); } }); });
     const sites = db.sites.slice().sort((a, b) => a.id - b.id).map((x) => ({ name: x.name, what: s(x.what_it_is), note: s(x.note),
       lat: x.lat === null ? null : Number(x.lat), lon: x.lng === null ? null : Number(x.lng), kind: x.kind || 'current', v: [] }));
-    const garaged = Object.values(R).filter((v) => v.garage);
-    if (garaged.length) {
-      const yard = garaged[0].yard, base = sites.find((x) => x.name === yard);
-      sites.push({ name: GARAGE, what: 'The garage at the ' + yard + ' yard',
-        note: 'Pinned just beside ' + yard + ', which is where the garage is — the position is approximate.',
-        lat: base.lat, lon: base.lon === null ? null : base.lon + 0.03, v: [], garage: true });
-    }
     const gone = Object.values(R).filter((v) => v.fleet === 'Out of fleet').sort((a, b) => (a.plate < b.plate ? -1 : 1));
     const rented = Object.values(R).filter((v) => v.fleet === 'Rented to Fala Road').sort((a, b) => (a.plate < b.plate ? -1 : 1));
     const byName = {}; sites.forEach((x) => { byName[x.name] = x; });

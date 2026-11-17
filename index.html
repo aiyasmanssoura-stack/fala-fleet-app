@@ -1723,7 +1723,7 @@ let drawLeads = ()=>{};
     const placed   = perSite.reduce((a,b)=>a+b, 0);
     const places   = perSite.filter(n=>n).length;
     const noloc    = tally(D.unplaced).n;
-    const garaged  = (D.sites.find(s2=>s2.garage)||{v:[]}).v.filter(keep).length;
+    const garaged  = ALL.filter(v=>v.garage && keep(v)).length;
     el('mTiles').innerHTML = [
       ['In the fleet', inFleet, `of ${vis.length - hiredVis} of ours on record`,''],
       ['Hired in', hiredVis, hiredVis?'rented, standing on our sites':'none shown', ''],
@@ -1890,7 +1890,7 @@ let drawLeads = ()=>{};
       <td class="n"><span class="dash">—</span></td>
       <td class="sm">${esc(v.note)}</td></tr>`;
     return `<tr class="rowlink ${kid?'kid':''} ${bad?'bad':''} ${ctx?'ctx':''}" data-f="card" data-plate="${esc(v.plate)}">
-      <td class="id"><span class="clsdot" style="background:${SC[cix(v.cls)]}"></span>${esc(v.plate)}${tagsFor(v)}</td>
+      <td class="id"><span class="clsdot" style="background:${SC[cix(v.cls)]}"></span>${esc(v.plate)}${tagsFor(v)}${v.garage?' <span class="tag" title="In the garage at the yard">in the garage</span>':''}</td>
       <td>${esc(v.type)}${code?` <span class="sm">${esc(v.code)}</span>`:''}</td>
       <td>${kid?'<span class="sm">pulled by '+esc(v.coupledTo)+'</span>':who(v)}</td>
       <td class="n">${kid?'<span class="dash">—</span>':since(v.since)}</td>
