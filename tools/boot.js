@@ -2,6 +2,12 @@
 const SB_URL = "https://lmtwqdoldsxalwshltne.supabase.co";
 const SB_KEY = "sb_publishable_x-C3LN42cBLjH4hHYvNs1Q_ktcSjZYe"; // public key; data is protected by database rules
 const sb = supabase.createClient(SB_URL, SB_KEY);
+/* After a save, the next page you open reloads the data first, so it shows the new info without pressing refresh (17 Nov 2026). */
+window.DIRTY = false;
+{ const _rpc = sb.rpc.bind(sb); sb.rpc = (name, ...a) => { if (name !== 'mark_change_seen') window.DIRTY = true; return _rpc(name, ...a); };
+  const _from = sb.from.bind(sb);
+  sb.from = (t) => { const b = _from(t); ['insert', 'update', 'upsert', 'delete'].forEach((m) => { if (typeof b[m] === 'function') { const f = b[m].bind(b); b[m] = (...a) => { window.DIRTY = true; return f(...a); }; } }); return b; }; }
+window.addEventListener('hashchange', () => { if (window.DIRTY && document.getElementById('pagejs') && !document.getElementById('gate')) { window.DIRTY = false; location.reload(); } });
 /* Refresh shows a plain white "Loading…" until we know if you are signed in; the login box only appears if you are not. */
 const showLoading = () => { const g = document.getElementById('gate'); g.style.background = '#fff'; g.style.display = 'flex'; g.style.opacity = '1'; document.getElementById('gateForm').hidden = true; document.getElementById('gLoad').hidden = false; };
 const showLogin = () => { const g = document.getElementById('gate'); g.style.background = '#16305C'; g.style.display = 'flex'; document.getElementById('gateForm').hidden = false; document.getElementById('gLoad').hidden = true; };
