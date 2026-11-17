@@ -78,7 +78,7 @@
       ${v.trailer ? `<div><div class="lbl">Pulled by</div><div class="v"><a data-f="card" data-plate="${esc(v.trailer)}" style="color:var(--brand);cursor:pointer">${esc(v.trailer)}</a></div></div>` : ''}
       ${kids.length ? `<div><div class="lbl">Trailer</div><div class="v">${kids.map(k=>`<a data-f="card" data-plate="${esc(k.plate)}" style="color:var(--brand);cursor:pointer">${esc(k.plate)}</a>`).join(', ')}</div></div>` : ''}
       ${v.note ? `<div><div class="lbl">Note</div><div class="v sm">${esc(v.note)}</div></div>` : ''}</div>
-      ${CAN_EDIT() ? `<div class="linkrow" style="margin-top:12px">${isTrailer ? '' : btn('chgdrv', 'Change ' + word)}${btn('chgsite', 'Change site')}</div>` : ''}</div>`;
+      ${CAN_EDIT() ? `<div class="linkrow" style="margin-top:12px">${isTrailer ? '' : btn('chgdrv', 'Change ' + word)}${btn('chgsite', 'Change site')}${['3XL Truck','Six Wheel','Other Vehicle'].includes(v.cls) ? btn('chgtrl', kids.length ? 'Change trailer' : 'Add trailer') : ''}</div>` : ''}</div>`;
 
     const tagRows = (v.tags || []).filter(t=>t.v && !['NA','N/A'].includes(t.v.toUpperCase()));
     const details = `<div class="panel"><div class="ph"><h3>Details</h3></div><div class="ckv">
@@ -128,12 +128,20 @@
       <p class="cap" style="margin:0">This trailer travels behind <b>${esc(v.trailer)}</b> today. Its gate passes and its driver belong to that truck.</p>
       <div class="linkrow"><a class="btn" data-f="card" data-plate="${esc(v.trailer)}">Open ${esc(v.trailer)} →</a></div></div>` : '';
 
+    /* Trailer history (17 Nov 2026): who pulls it / what it pulls, now and before, with dates */
+    const sinceTxt = d => d ? fmt.format(parse(d)) : 'not recorded';
+    const hist = v.coupLog || [];
+    const nowRows = isTrailer ? (v.trailer ? [{w:v.trailer, f:v.psince, t:null}] : []) : kids.map(k=>({w:k.plate, f:k.psince, t:null}));
+    const trlHist = (nowRows.length || hist.length) ? `<div class="panel"><div class="ph"><h3>Trailer history</h3><span class="note">${nowRows.length + hist.length} · newest first</span></div>
+      <div class="scroll"><table><thead><tr><th>${isTrailer ? 'Truck' : 'Trailer'}</th><th>From</th><th>To</th><th>Note</th></tr></thead><tbody>${
+        nowRows.concat(hist).map(r=>`<tr><td><a data-f="card" data-plate="${esc(r.w)}" style="color:var(--brand);cursor:pointer">${esc(r.w)}</a></td><td>${sinceTxt(r.f)}</td><td>${r.t ? fmt.format(parse(r.t)) : '<span class="pill p-ok">now</span>'}</td><td class="sm">${r.note ? esc(r.note) : ''}</td></tr>`).join('')}</tbody></table></div></div>` : '';
+
     const none = '<p class="cap">Nothing on record.</p>';
     const tabs = [
       {k:'ov', t:'Overview', h:overview},
       {k:'pp', t:'Papers', n:ex.length, hot:true, h:block(v, false)},
       {k:'ps', t:'People & sites', h:(who + assign) || none},
-      ...((kids.length || v.trailer) ? [{k:'tl', t:'Trailer', h:coupled + pulled}] : []),
+      ...((kids.length || v.trailer || hist.length) ? [{k:'tl', t:'Trailer', h:coupled + pulled + trlHist}] : []),
       {k:'ty', t:'Tyres', n:nTy, h:tyrePanel(v, false)},
       {k:'sv', t:'Service and maintenance', n:nSv, h:servicePanel(v)},
       {k:'di', t:'Diesel', h:dieselPanel(v) || none},

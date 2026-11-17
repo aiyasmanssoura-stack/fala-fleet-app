@@ -52,7 +52,7 @@ function homeChanges(log){
 window.chgHistory = function(o){
   if((window.MYROLE || '') !== 'admin') return '';
   const pid = o.person;
-  const mine = (window.APPLOG || []).filter(e => o.vehicle ? e.vehicle_id === o.vehicle
+  const mine = (window.APPLOG || []).filter(e => o.vehicle ? (e.vehicle_id === o.vehicle || (e.details && e.details.new_trailer_id === o.vehicle))
     : (() => { const d = e.details || {}; return d.person_id === pid || d.old_driver_id === pid || d.new_driver_id === pid; })());
   const row = e => `<div class="catt"><b>${esc(o.vehicle ? e.summary.replace(/^[^:]*:\s*/, '') : e.summary)}</b>${e.seen_at ? '' : ' <span class="pill p-warn">new</span>'}
     <div class="sm">${esc(homeWhen(e.at))} · ${esc(homeWho(e.by_email))}</div></div>`;

@@ -24,7 +24,7 @@ const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', '
 
 /* database tables, in the order of the raw_ tabs, with the column they are read in order of */
 const TABLE_ORDER = [['vehicles', 'id'], ['people', 'id'], ['sites', 'id'], ['projects', 'id'], ['paper_types', 'id'], ['papers', 'id'],
-  ['board_history', 'id'], ['log_entries', 'id'], ['tyres', 'id'], ['tyre_moves', 'id'], ['service_jobs', 'id'], ['fines', 'id'],
+  ['board_history', 'id'], ['coupling_history', 'id'], ['log_entries', 'id'], ['tyres', 'id'], ['tyre_moves', 'id'], ['service_jobs', 'id'], ['fines', 'id'],
   ['diesel_lines', 'id'], ['suppliers', 'id'], ['hire_terms', 'id'], ['hire_postings', 'id'], ['hire_months', 'id'], ['report_files', 'id'],
   ['name_spellings', 'id'], ['app_users', 'id'], ['change_log', 'id'], ['gps_positions', 'vehicle_id'], ['machine_months', 'id'],
   ['report_unmatched', 'id'], ['machine_change_requests', 'id'], ['vehicle_old_numbers', 'id']];
@@ -33,7 +33,7 @@ const COLS = {
   app_users: 'id,email,role,person_id,created_at', sites: 'id,name,what_it_is,lat,lng,note,updated_at,updated_by',
   projects: 'id,name,site_id,note,updated_at,updated_by',
   people: 'id,passport_name,code,role,section,status,employee_no,employer,start_date,left_date,leave_from,leave_to,leave_note,note,updated_at,updated_by',
-  vehicles: 'id,number,number_type,ownership,class,vehicle_type,code,year,make_model,chassis_no,engine_no,owner,fleet_status,condition,condition_note,registration_emirate,mortgage,tracking,sensor_1,sensor_2,site_id,site_since,driver_id,driver_since,second_driver_id,pulled_by_id,board_status,gps,board_note,note,updated_at,updated_by,board_coupled,board_driver_text',
+  vehicles: 'id,number,number_type,ownership,class,vehicle_type,code,year,make_model,chassis_no,engine_no,owner,fleet_status,condition,condition_note,registration_emirate,mortgage,tracking,sensor_1,sensor_2,site_id,site_since,driver_id,driver_since,second_driver_id,pulled_by_id,pulled_since,board_status,gps,board_note,note,updated_at,updated_by,board_coupled,board_driver_text',
   paper_types: 'id,name,applies_to,warn_days,sort,has_expiry', papers: 'id,paper_type_id,vehicle_id,person_id,state,expiry,ref_no,note,is_current,updated_at,updated_by',
   report_files: 'id,kind,file_name,covers_from,covers_to,uploaded_at,uploaded_by,note', tyres: 'id,tyre_no,brand,size,details,status,disposed_on,updated_at,updated_by',
   tyre_moves: 'id,tyre_id,vehicle_id,position,from_date,to_date,job,report_file_id,asset,booked_plate,project,machine,brand_as_written',
@@ -44,6 +44,7 @@ const COLS = {
   hire_terms: 'id,vehicle_id,supplier_id,monthly_rate,lpo_no,operator,operator_name,diesel_by,jack_hammer,start_date,end_date,note,updated_at,updated_by',
   hire_postings: 'id,hire_terms_id,project_id,from_date,to_date,note', hire_months: 'id,posting_id,month,days,hours,report_file_id',
   board_history: 'id,vehicle_id,site_id,driver_id,from_date,to_date,note,vehicle_as_written,driver_as_written',
+  coupling_history: 'id,trailer_id,truck_id,from_date,to_date,note,created_at,created_by',
   log_entries: 'id,entry_date,about,vehicle_id,person_id,category,text,done,updated_at,updated_by,which_as_written',
   change_log: 'id,at,by_user,by_email,kind,vehicle_id,summary,details,seen_at,seen_by',
   gps_positions: 'vehicle_id,tracker_name,status,parking,ignition,speed_kmh,latitude,longitude,address,odometer_km,satellites,fix_time,tracker_update,synced_at',
@@ -522,6 +523,7 @@ const TABLE_DOC = {
   paper_types: 'The list of paper names (Registration, Insurance, gate passes, permits, Driver Licence ...) with warn_days = how many days before expiry the paper counts as "on renewal", and applies_to = vehicle or person.',
   papers: 'Every paper of every vehicle or person, with history. ALWAYS use only rows with is_current = true. state = Date (has an expiry date), Note or TASK (text in note), NA (not needed), Empty (not held).',
   board_history: 'Earlier driver / site of a vehicle with from and to dates (history of the old board).',
+  coupling_history: 'Which truck pulled which trailer and when: one row per past coupling with from and to dates. The current coupling is vehicles.pulled_by_id with vehicles.pulled_since.',
   log_entries: 'The history notes written by the Logistics Manager about a vehicle or a person (category, text, done yes/no).',
   tyres: 'One row per tyre (number, brand, size, fitted or disposed).',
   tyre_moves: 'Where a tyre was fitted: vehicle, position, from_date, to_date. The newest from_date per tyre is where it is now (replaced tyres keep to_date empty).',
@@ -550,7 +552,7 @@ const COL_DOC = {
   'vehicles.class': 'Group used by the app: 3XL Truck, Six Wheel, Trailer, Special Trailer, Other Vehicle, Car / Light Vehicle, Equipment.', 'vehicles.vehicle_type': 'Kind of vehicle. Capital letters are not consistent (EXCAVATOR / Excavator): compare case-insensitively.',
   'vehicles.code': 'Short code of the vehicle.', 'vehicles.fleet_status': 'In fleet, Out of fleet, or Rented to Fala Road (own trucks rented to Fala Road Contracting).', 'vehicles.condition': 'OK, Watch, Needs repair, Out of service, In garage.',
   'vehicles.condition_note': 'Free text about the condition.', 'vehicles.registration_emirate': 'Emirate of registration.', 'vehicles.tracking': 'Diesel sensor, UD Original or None.', 'vehicles.site_id': 'Where the vehicle is now.',
-  'vehicles.site_since': 'Date it arrived at this site.', 'vehicles.driver_id': 'Current driver.', 'vehicles.second_driver_id': 'Second driver.', 'vehicles.driver_since': 'Date the current driver started.', 'vehicles.pulled_by_id': 'For a trailer: the truck that pulls it.',
+  'vehicles.site_since': 'Date it arrived at this site.', 'vehicles.pulled_since': 'Date the trailer was coupled to the truck in pulled_by_id (empty = not recorded).', 'coupling_history.trailer_id': 'The trailer (vehicles.id).', 'coupling_history.truck_id': 'The truck that pulled it (vehicles.id).', 'coupling_history.from_date': 'First day coupled.', 'coupling_history.to_date': 'Last day coupled.', 'vehicles.driver_id': 'Current driver.', 'vehicles.second_driver_id': 'Second driver.', 'vehicles.driver_since': 'Date the current driver started.', 'vehicles.pulled_by_id': 'For a trailer: the truck that pulls it.',
   'vehicles.board_status': 'Text status from the old board.', 'vehicles.board_driver_text': 'Driver as written on the old board when no person is linked.', 'vehicles.board_note': 'Note from the old board.', 'vehicles.note': 'Free note.', 'vehicles.gps': 'GPS text (Yes / No ...).', 'vehicles.owner': 'Registered owner (Registered to).',
   'people.passport_name': 'Full name as on the passport (the name shown in the app).', 'people.code': 'Short code, used to sort people.', 'people.section': 'Drivers, Operators or Staff.', 'people.status': 'Active, On Leave, Left or Suspended.', 'people.employee_no': 'Employee number (personal data).',
   'people.employer': 'Company that employs the person.', 'people.leave_from': 'Start of the leave.', 'people.leave_to': 'End of the leave.',

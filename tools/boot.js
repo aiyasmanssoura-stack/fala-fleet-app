@@ -22,7 +22,7 @@ async function pull(table) {
   }
 }
 async function start() {
-  const names = ['vehicles', 'people', 'sites', 'paper_types', 'papers', 'log_entries', 'suppliers', 'projects', 'hire_terms', 'hire_postings', 'tyres', 'tyre_moves', 'service_jobs', 'fines', 'report_files', 'diesel_lines', 'machine_months', 'vehicle_old_numbers', 'board_history'];
+  const names = ['vehicles', 'people', 'sites', 'paper_types', 'papers', 'log_entries', 'suppliers', 'projects', 'hire_terms', 'hire_postings', 'tyres', 'tyre_moves', 'service_jobs', 'fines', 'report_files', 'diesel_lines', 'machine_months', 'vehicle_old_numbers', 'board_history', 'coupling_history'];
   const t = await Promise.all(names.map(pull));
   const db = {}; names.forEach((n, i) => { db[n] = t[i]; });
   const today = new Date(); const pad = n => String(n).padStart(2, '0');
