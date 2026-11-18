@@ -473,6 +473,9 @@
     const notedTerm = new Set(db.hire_postings.filter((x) => /Written on Hired IN as/.test(s(x.note))).map((x) => x.hire_terms_id));
     const written = (n) => { const m = /Written on Hired IN as "(.*)"/.exec(s(n)); return m ? m[1] : ''; };
     const mmz = mmByVehicle(db);
+    const ptn = {}; db.paper_types.forEach((t) => { ptn[t.id] = t.name; });
+    const hpass = {}; (db.papers || []).forEach((p) => { if (p.is_current && p.vehicle_id && ptn[p.paper_type_id]) (hpass[p.vehicle_id] = hpass[p.vehicle_id] || {})[ptn[p.paper_type_id]] = { exp: p.expiry ? iso(p.expiry) : '', ref: s(p.ref_no), note: s(p.note) }; });
+    const hpOf = (vid, n) => (hpass[vid] || {})[n] || null;
     const rows = [], back = [];
     db.hire_postings.slice().sort((a, b) => a.id - b.id).forEach((hp) => {
       const t = terms[hp.hire_terms_id], v = t && veh[t.vehicle_id], pr = prj[hp.project_id]; if (!t || !v || !pr) return;
@@ -482,7 +485,7 @@
       const plate = kind === 'none' ? (type.toUpperCase()) : plateW;
       const op = s(t.operator), opw = /Operator Status written as: (.*)$/.exec(s(t.note));
       const dz = s(t.diesel_by), rate = t.monthly_rate === null || t.monthly_rate === undefined ? null : Number(t.monthly_rate);
-      (ended ? back : rows).push({ tid: t.id, vid: v.id, engine: s(v.engine_no), owner: s(v.owner), number: s(v.number), make: s(v.make_model), year: v.year == null ? '' : v.year, chassis: s(v.chassis_no), sid: t.supplier_id, start: t.start_date ? iso(t.start_date) : '', end: t.end_date ? iso(t.end_date) : '', plate, idkind: kind, dig: plateW.split('/')[0].replace(/\D/g, ''), type, cls: s(v.class) || 'Equipment', firm: sup[t.supplier_id] || '(supplier not stated)', mm: mmz[v.id] || [],
+      (ended ? back : rows).push({ tid: t.id, vid: v.id, pass: hpOf(v.id, 'Landside Gate Pass'), dpass: hpOf(v.id, 'Hired driver Landside Pass'), engine: s(v.engine_no), owner: s(v.owner), number: s(v.number), make: s(v.make_model), year: v.year == null ? '' : v.year, chassis: s(v.chassis_no), sid: t.supplier_id, start: t.start_date ? iso(t.start_date) : '', end: t.end_date ? iso(t.end_date) : '', plate, idkind: kind, dig: plateW.split('/')[0].replace(/\D/g, ''), type, cls: s(v.class) || 'Equipment', firm: sup[t.supplier_id] || '(supplier not stated)', mm: mmz[v.id] || [],
         drv: s(t.operator_name) === 'NA' ? 'NA' : s(t.operator_name), lpo: s(t.lpo_no), rate, proj: pr.name,
         rawproj: written(pr.note) || pr.name, site: pr.site_id ? site[pr.site_id] : pr.name,
         withDriver: /^with operator/i.test(op), opStatus: op ? op.replace(/\boperator\b/, 'Operator') : (opw ? opw[1] : ''),
