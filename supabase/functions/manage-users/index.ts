@@ -19,8 +19,9 @@ Deno.serve(async (req) => {
     const { data: ures } = await admin.auth.getUser(token);
     const me = ures?.user;
     if (!me) return json(401, { error: "Please sign in again." });
-    const { data: mine } = await admin.from("app_users").select("role,email").eq("id", me.id).maybeSingle();
-    if (!mine || mine.role !== "admin") return json(403, { error: "Only an Admin can manage users." });
+    const { data: mine, error: me_err } = await admin.from("app_users").select("role,email").eq("id", me.id).maybeSingle();
+    if (me_err) return json(500, { error: "Could not read the user list: " + me_err.message });
+    if (!mine || mine.role !== "admin") return json(403, { error: "Only an Admin can manage users. (your level: " + (mine ? mine.role : "not found") + ")" });
 
     const b = await req.json().catch(() => ({}));
     const log = async (summary: string, details: Record<string, unknown>) => {
