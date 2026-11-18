@@ -2,7 +2,7 @@
   /* ================= RENEW A PAPER ===========================================
      Renew on an expiry tile. renew_paper keeps the old row as history
      (is_current = false) and writes the new one, and logs who did it. */
-  const renewBtn = d => (CAN_EDIT() && d.tid && state(d) !== 'na')
+  const renewBtn = d => ((CAN_EDIT() || (AMIA_PAPER(d.k) && d.st === 'date')) && d.tid && state(d) !== 'na')
     ? `<button type="button" class="btn" data-f="renew" data-vid="${d.vid}" data-tid="${d.tid}" style="margin-top:8px;padding:6px 12px;min-height:32px;font-size:13px">Renew</button>` : '';
   function openRenew(vid, tid){
     const v = Object.values(V).find(x => x._id === +vid); if(!v || document.getElementById('chgDlg')) return;

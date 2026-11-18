@@ -103,7 +103,7 @@
       <thead><tr><th>Paper</th><th class="n">Expires</th><th>Status</th><th></th></tr></thead><tbody>
       ${live.slice().sort((a,b)=>order[state(a)]-order[state(b)]).map(d=>`<tr><td><b>${esc(d.k)}</b></td>
         <td class="n id">${d.st==='date' ? fmt.format(parse(d.v)) : (d.st==='note' ? esc(d.v) : '<span class="dash">—</span>')}</td>
-        <td>${statusPill(d)}</td><td class="n">${CAN_EDIT() && d.tid ? `<button type="button" class="btn" data-f="renew" data-vid="${d.vid}" data-tid="${d.tid}" style="padding:3px 10px;min-height:28px;font-size:12px">Renew</button>` : ''}</td></tr>`).join('')}
+        <td>${statusPill(d)}</td><td class="n">${(CAN_EDIT() || (AMIA_PAPER(d.k) && d.st === 'date')) && d.tid ? `<button type="button" class="btn" data-f="renew" data-vid="${d.vid}" data-tid="${d.tid}" style="padding:3px 10px;min-height:28px;font-size:12px">Renew</button>` : ''}</td></tr>`).join('')}
       </tbody></table></div></div>`;
 
     const attn = [...ex.map(d=>`<div class="catt"><span class="pill p-crit">Expired</span> ${esc(d.k)} — ${-until(d.v)} days ago</div>`),

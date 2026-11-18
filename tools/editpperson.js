@@ -3,7 +3,7 @@
      Licence, Diesel Tanker Permit, Landside Gate Pass, Airside Driving Permit on a person's card.
      renew_person_paper keeps the old row as history and writes the new one, and logs who did it. */
   const PTYPE_NAME = {'Licence Expiry':'Driver Licence'};
-  window.prenewBtn = (p, k) => (CAN_EDIT() && p._id)
+  window.prenewBtn = (p, k) => ((CAN_EDIT() || (AMIA_PAPER(k) && /^\d{4}-\d\d-\d\d$/.test((p[k] || '').trim()))) && p._id)
     ? `<button type="button" class="btn" data-pn="${esc(p['Name (as per passport)'])}" data-pk="${esc(k)}" style="margin-top:8px;padding:6px 12px;min-height:32px;font-size:13px">Renew</button>` : '';
   window.paddBtns = (name, na) => { const p = D.persons[name]; if(!(CAN_EDIT() && p && p._id && na && na.length)) return '';
     return `<div style="display:flex;gap:7px;flex-wrap:wrap;margin-top:9px">${na.map(k => `<button type="button" class="btn" data-pn="${esc(name)}" data-pk="${esc(k)}" style="padding:6px 12px;min-height:32px;font-size:13px">Add ${esc(k)}</button>`).join('')}</div>`; };

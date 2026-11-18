@@ -4,6 +4,8 @@
      function change_driver, which moves the old driver into the history,
      sets the new one, and writes who changed it to the change log. */
   const CAN_EDIT = () => ['admin', 'editor'].includes(window.MYROLE || '');
+  /* AMIA Project Editor: may renew an existing Landside Gate Pass only (vehicle label 'AMIA landside pass', person label 'Landside Gate Pass'); the database enforces it too */
+  const AMIA_PAPER = (k) => (window.MYROLE || '') === 'amia_editor' && (k === 'AMIA landside pass' || k === 'Landside Gate Pass');
   const ISO_TODAY = () => { const d = new Date(), p = n => String(n).padStart(2, '0'); return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())}`; };
   const ISO_BEFORE = (iso) => { const d = new Date(iso + 'T00:00:00'); d.setDate(d.getDate() - 1); const p = n => String(n).padStart(2, '0'); return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())}`; };
   const changeBtn = (v) => CAN_EDIT() ? `<button type="button" class="btn" data-f="chgdrv" data-plate="${esc(v.plate)}" style="margin-left:auto">${v.driver ? 'Change' : 'Assign'} ${v.cls === 'Equipment' ? 'operator' : 'driver'}</button>` : '';

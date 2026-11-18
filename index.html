@@ -2653,6 +2653,8 @@ let drawLeads = ()=>{};
      function change_driver, which moves the old driver into the history,
      sets the new one, and writes who changed it to the change log. */
   const CAN_EDIT = () => ['admin', 'editor'].includes(window.MYROLE || '');
+  /* AMIA Project Editor: may renew an existing Landside Gate Pass only (vehicle label 'AMIA landside pass', person label 'Landside Gate Pass'); the database enforces it too */
+  const AMIA_PAPER = (k) => (window.MYROLE || '') === 'amia_editor' && (k === 'AMIA landside pass' || k === 'Landside Gate Pass');
   const ISO_TODAY = () => { const d = new Date(), p = n => String(n).padStart(2, '0'); return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())}`; };
   const ISO_BEFORE = (iso) => { const d = new Date(iso + 'T00:00:00'); d.setDate(d.getDate() - 1); const p = n => String(n).padStart(2, '0'); return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())}`; };
   const changeBtn = (v) => CAN_EDIT() ? `<button type="button" class="btn" data-f="chgdrv" data-plate="${esc(v.plate)}" style="margin-left:auto">${v.driver ? 'Change' : 'Assign'} ${v.cls === 'Equipment' ? 'operator' : 'driver'}</button>` : '';
@@ -2828,7 +2830,7 @@ let drawLeads = ()=>{};
   /* ================= RENEW A PAPER ===========================================
      Renew on an expiry tile. renew_paper keeps the old row as history
      (is_current = false) and writes the new one, and logs who did it. */
-  const renewBtn = d => (CAN_EDIT() && d.tid && state(d) !== 'na')
+  const renewBtn = d => ((CAN_EDIT() || (AMIA_PAPER(d.k) && d.st === 'date')) && d.tid && state(d) !== 'na')
     ? `<button type="button" class="btn" data-f="renew" data-vid="${d.vid}" data-tid="${d.tid}" style="margin-top:8px;padding:6px 12px;min-height:32px;font-size:13px">Renew</button>` : '';
   function openRenew(vid, tid){
     const v = Object.values(V).find(x => x._id === +vid); if(!v || document.getElementById('chgDlg')) return;
@@ -2985,7 +2987,7 @@ let drawLeads = ()=>{};
      Licence, Diesel Tanker Permit, Landside Gate Pass, Airside Driving Permit on a person's card.
      renew_person_paper keeps the old row as history and writes the new one, and logs who did it. */
   const PTYPE_NAME = {'Licence Expiry':'Driver Licence'};
-  window.prenewBtn = (p, k) => (CAN_EDIT() && p._id)
+  window.prenewBtn = (p, k) => ((CAN_EDIT() || (AMIA_PAPER(k) && /^\d{4}-\d\d-\d\d$/.test((p[k] || '').trim()))) && p._id)
     ? `<button type="button" class="btn" data-pn="${esc(p['Name (as per passport)'])}" data-pk="${esc(k)}" style="margin-top:8px;padding:6px 12px;min-height:32px;font-size:13px">Renew</button>` : '';
   window.paddBtns = (name, na) => { const p = D.persons[name]; if(!(CAN_EDIT() && p && p._id && na && na.length)) return '';
     return `<div style="display:flex;gap:7px;flex-wrap:wrap;margin-top:9px">${na.map(k => `<button type="button" class="btn" data-pn="${esc(name)}" data-pk="${esc(k)}" style="padding:6px 12px;min-height:32px;font-size:13px">Add ${esc(k)}</button>`).join('')}</div>`; };
@@ -3529,7 +3531,7 @@ let drawLeads = ()=>{};
       <thead><tr><th>Paper</th><th class="n">Expires</th><th>Status</th><th></th></tr></thead><tbody>
       ${live.slice().sort((a,b)=>order[state(a)]-order[state(b)]).map(d=>`<tr><td><b>${esc(d.k)}</b></td>
         <td class="n id">${d.st==='date' ? fmt.format(parse(d.v)) : (d.st==='note' ? esc(d.v) : '<span class="dash">—</span>')}</td>
-        <td>${statusPill(d)}</td><td class="n">${CAN_EDIT() && d.tid ? `<button type="button" class="btn" data-f="renew" data-vid="${d.vid}" data-tid="${d.tid}" style="padding:3px 10px;min-height:28px;font-size:12px">Renew</button>` : ''}</td></tr>`).join('')}
+        <td>${statusPill(d)}</td><td class="n">${(CAN_EDIT() || (AMIA_PAPER(d.k) && d.st === 'date')) && d.tid ? `<button type="button" class="btn" data-f="renew" data-vid="${d.vid}" data-tid="${d.tid}" style="padding:3px 10px;min-height:28px;font-size:12px">Renew</button>` : ''}</td></tr>`).join('')}
       </tbody></table></div></div>`;
 
     const attn = [...ex.map(d=>`<div class="catt"><span class="pill p-crit">Expired</span> ${esc(d.k)} — ${-until(d.v)} days ago</div>`),
