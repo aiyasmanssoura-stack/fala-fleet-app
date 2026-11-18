@@ -120,21 +120,33 @@ function renderSettings(){
   const prow = p => { const h = placeProjects({id: p.site_id}).find(x => x.id === p.id); 
     return `<tr class="rowlink" data-pl-proj="${p.id}" style="cursor:pointer"><td class="id"><b>${esc(p.name)}</b></td><td>${esc(siteName(p.site_id))}</td>
       <td>${p.status === 'archived' ? '<span class="pill p-crit">Archived</span>' : 'Active'}</td><td class="n">${h ? h.hired : 0}</td></tr>`; };
-  root.innerHTML = `
-    <h2 style="margin:0 0 14px">Settings</h2>
-    <div style="display:flex;gap:10px;align-items:baseline;flex-wrap:wrap;margin:0 0 6px"><h3 style="margin:0">Places</h3><span class="sm">Click a line to change it.</span><span style="flex:1"></span><button type="button" class="btn" id="plAddSite">Add place</button></div>
+  const view = (() => { const h = decodeURIComponent((location.hash || '').slice(1)); return h.startsWith('settings/') ? h.slice(9) : ''; })();
+  const ICON = {
+    places: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-6.5-5.6-6.5-11a6.5 6.5 0 0 1 13 0c0 5.4-6.5 11-6.5 11z"/><circle cx="12" cy="10" r="2.4"/></svg>',
+    projects: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="3.5" width="16" height="17" rx="2"/><path d="M8 9h8M8 13h8M8 17h5"/></svg>',
+    users: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.6"/><path d="M5 20.5c0-3.9 3.1-6.5 7-6.5s7 2.6 7 6.5"/></svg>'};
+  const CARDS = [['places', 'Places & Sites', 'Yards, projects, sister company, archive'], ['projects', 'Projects', 'Add, move to a place, archive'], ['users', 'Users', 'Add users, levels, passwords, switch off']];
+  const head = (t, extra) => `<div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:0 0 12px"><a class="btn" href="#settings">&lsaquo; Settings</a><h2 style="margin:0">${t}</h2><span class="sm">Click a line to change it.</span><span style="flex:1"></span>${extra}</div>`;
+  if(view === 'places'){
+    root.innerHTML = head('Places &amp; Sites', '<button type="button" class="btn" id="plAddSite" style="background:var(--navy,#16315c);color:#fff">+ Add place</button>') + `
     <div class="scroll"><table><thead><tr><th>Place</th><th>Kind</th><th class="n">Machines</th></tr></thead><tbody>
       <tr class="secthead"><td colspan="3">Active · ${act.length}</td></tr>${act.map(srow).join('')}
-      ${arc.length ? `<tr class="secthead"><td colspan="3">Archive · ${arc.length}</td></tr>${arc.map(srow).join('')}` : ''}</tbody></table></div>
-    <div style="display:flex;gap:10px;align-items:baseline;flex-wrap:wrap;margin:26px 0 6px"><h3 style="margin:0">Projects</h3><span style="flex:1"></span><button type="button" class="btn" id="plAddProj">Add project</button></div>
+      ${arc.length ? `<tr class="secthead"><td colspan="3">Archive · ${arc.length}</td></tr>${arc.map(srow).join('')}` : ''}</tbody></table></div>`;
+    el('plAddSite').onclick = () => plPlaceDialog(null);
+  }else if(view === 'projects'){
+    root.innerHTML = head('Projects', '<button type="button" class="btn" id="plAddProj" style="background:var(--navy,#16315c);color:#fff">+ Add project</button>') + `
     <div class="scroll"><table><thead><tr><th>Project</th><th>Place</th><th>Status</th><th class="n">Hired machines</th></tr></thead><tbody>
       ${prs.filter(p => p.status !== 'archived').map(prow).join('')}${prs.filter(p => p.status === 'archived').map(prow).join('')}</tbody></table></div>`;
-  el('plAddSite').onclick = () => plPlaceDialog(null);
-  el('plAddProj').onclick = () => plProjectDialog(null);
-  root.insertAdjacentHTML('beforeend', `<div style="display:flex;gap:10px;align-items:baseline;flex-wrap:wrap;margin:26px 0 6px"><h3 style="margin:0">Users</h3><span class="sm">Click a line to change it.</span><span style="flex:1"></span><button type="button" class="btn" id="usAdd" style="background:var(--navy,#16315c);color:#fff">+ Add user</button></div>
-    <div class="scroll" id="usBox"><p class="sm">Loading…</p></div>`);
-  el('usAdd').onclick = () => usDialog(null);
-  usLoad();
+    el('plAddProj').onclick = () => plProjectDialog(null);
+  }else if(view === 'users'){
+    root.innerHTML = head('Users', '<button type="button" class="btn" id="usAdd" style="background:var(--navy,#16315c);color:#fff">+ Add user</button>') + `<div class="scroll" id="usBox"><p class="sm">Loading…</p></div>`;
+    el('usAdd').onclick = () => usDialog(null);
+    usLoad();
+  }else{
+    root.innerHTML = `<h2 style="margin:0 0 14px">Settings</h2><div style="display:grid;gap:8px;max-width:760px">${CARDS.map(c =>
+      `<a href="#settings/${c[0]}" class="setcard" style="display:flex;align-items:center;gap:14px;padding:14px 16px;border:1px solid var(--line,#d9d6cc);border-radius:10px;background:var(--card,#fff);color:inherit;text-decoration:none">${ICON[c[0]]}<span style="flex:1"><b style="display:block;font-size:15px">${c[1]}</b><span class="sm">${c[2]}</span></span><span class="sm" style="font-size:18px">&rsaquo;</span></a>`).join('')}</div>
+      <style>.setcard:hover{background:var(--soft,#f4f2ec)!important}</style>`;
+  }
 }
 
 /* ---- Users (Admin): the manage-users server function does the real work and checks the caller is an Admin ---- */
