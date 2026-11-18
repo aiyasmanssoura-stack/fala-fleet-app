@@ -131,11 +131,68 @@ function renderSettings(){
       ${prs.filter(p => p.status !== 'archived').map(prow).join('')}${prs.filter(p => p.status === 'archived').map(prow).join('')}</tbody></table></div>`;
   el('plAddSite').onclick = () => plPlaceDialog(null);
   el('plAddProj').onclick = () => plProjectDialog(null);
+  root.insertAdjacentHTML('beforeend', `<div style="display:flex;gap:10px;align-items:baseline;flex-wrap:wrap;margin:26px 0 6px"><h3 style="margin:0">Users</h3><span class="sm">Click a line to change it.</span><span style="flex:1"></span><button type="button" class="btn" id="usAdd" style="background:var(--navy,#16315c);color:#fff">+ Add user</button></div>
+    <div class="scroll" id="usBox"><p class="sm">Loading…</p></div>`);
+  el('usAdd').onclick = () => usDialog(null);
+  usLoad();
+}
+
+/* ---- Users (Admin): the manage-users server function does the real work and checks the caller is an Admin ---- */
+const US_NAMES = {admin: 'Admin', editor: 'Editor', viewer: 'Guest', amia_editor: 'AMIA Project Editor'};
+const US_HELP = {admin: 'everything', editor: 'changes the fleet', viewer: 'views only', amia_editor: 'views, renews the Landside pass'};
+let US_ROWS = [];
+async function usCall(body){
+  try{
+    const r = await sb.functions.invoke('manage-users', {body});
+    if(r.error){ let m = r.error.message; try{ const j = await r.error.context.json(); if(j && j.error) m = j.error; }catch(x){} return {error: m}; }
+    if(r.data && r.data.error) return {error: r.data.error};
+    return {data: r.data};
+  }catch(x){ return {error: x.message || String(x)}; }
+}
+async function usLoad(){
+  const box = el('usBox'); if(!box) return;
+  const r = await usCall({action: 'list'});
+  if(r.error){ box.innerHTML = `<p class="sm" style="color:var(--crit)">${esc(r.error)}</p>`; return; }
+  US_ROWS = r.data.users || [];
+  box.innerHTML = `<table><thead><tr><th>Email</th><th>Level</th><th>Status</th></tr></thead><tbody>${US_ROWS.map(u =>
+    `<tr class="rowlink" data-pl-user="${esc(u.id)}" style="cursor:pointer${u.off ? ';opacity:.6' : ''}"><td class="id"><b>${esc(u.email)}</b>${u.me ? ' <span class="sm">(you)</span>' : ''}</td><td>${esc(US_NAMES[u.role] || u.role)}</td><td>${u.off ? '<span class="pill p-crit">Switched off</span>' : 'Active'}</td></tr>`).join('')}</tbody></table>`;
+}
+function usDialog(u){
+  const isNew = !u;
+  const opts = Object.keys(US_NAMES).map(k => `<option value="${k}"${(u ? u.role : 'viewer') === k ? ' selected' : ''}>${US_NAMES[k]} — ${US_HELP[k]}</option>`).join('');
+  const f = isNew
+    ? `<div><label style="${PL_LAB}">Email</label><input id="usE" type="email" autocomplete="off" style="${PL_FLD}" placeholder="name@company.com"></div>
+       <div><label style="${PL_LAB}">Level</label><select id="usR" style="${PL_FLD}">${opts}</select></div>
+       <div><label style="${PL_LAB}">First password</label><input id="usP" type="text" autocomplete="off" style="${PL_FLD}" placeholder="at least 8 characters"><div class="sm" style="margin-top:4px">Give it to the person. They can change it later.</div></div>`
+    : `<div class="sm"><b>${esc(u.email)}</b>${u.me ? ' (you)' : ''}${u.off ? ' · switched off' : ''}</div>
+       <div><label style="${PL_LAB}">Level</label><select id="usR" style="${PL_FLD}"${u.me ? ' disabled' : ''}>${opts}</select>${u.me ? '<div class="sm" style="margin-top:4px">You cannot change your own level.</div>' : ''}</div>
+       <div><label style="${PL_LAB}">New password <span class="sm" style="font-weight:400">(leave empty to keep it)</span></label><input id="usP" type="text" autocomplete="off" style="${PL_FLD}" placeholder="at least 8 characters"></div>`;
+  const btn = (!isNew && !u.me) ? `<button type="button" class="btn" id="usOff">${u.off ? 'Switch on' : 'Switch off'}</button>` : '';
+  const d = plDialog(isNew ? 'Add user' : 'User', f, btn, async o => {
+    const role = o.querySelector('#usR').value, pw = o.querySelector('#usP').value;
+    if(isNew){
+      const email = o.querySelector('#usE').value.trim();
+      if(!email) return 'Type the email.';
+      if(pw.length < 8) return 'The password needs at least 8 characters.';
+      const r = await usCall({action: 'create', email, role, password: pw}); if(r.error) return r.error;
+    }else{
+      if(pw && pw.length < 8) return 'The password needs at least 8 characters.';
+      if(!u.me && role !== u.role){ const r = await usCall({action: 'set_role', id: u.id, role}); if(r.error) return r.error; }
+      if(pw){ const r = await usCall({action: 'set_password', id: u.id, password: pw}); if(r.error) return r.error; }
+    }
+    usLoad();
+  });
+  const off = d.o.querySelector('#usOff');
+  if(off) off.onclick = async () => {
+    const r = await usCall({action: 'set_active', id: u.id, active: !!u.off}); if(r.error){ d.err.textContent = r.error; return; }
+    d.close(); usLoad();
+  };
 }
 document.addEventListener('click', e => {
   const r = e.target.closest && e.target.closest('#settingsBody tr.rowlink'); if(!r) return;
   if(r.dataset.plSite) plPlaceDialog((window.APPSITES || []).find(s => s.id === +r.dataset.plSite));
   else if(r.dataset.plProj) plProjectDialog((window.APPPROJECTS || []).find(p => p.id === +r.dataset.plProj));
+  else if(r.dataset.plUser) usDialog(US_ROWS.find(x => x.id === r.dataset.plUser));
 });
 if(window.MYROLE === 'admin') el('tabSettings').style.display = '';
 el('tabSettings').onclick = () => { location.hash = '#settings'; show('settings', true); renderSettings(); };
