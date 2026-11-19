@@ -150,8 +150,8 @@ function renderSettings(){
 }
 
 /* ---- Users (Admin): the manage-users server function does the real work and checks the caller is an Admin ---- */
-const US_NAMES = {admin: 'Admin', editor: 'Editor', viewer: 'Guest', amia_editor: 'AMIA Project Editor'};
-const US_HELP = {admin: 'everything', editor: 'changes the fleet', viewer: 'views only', amia_editor: 'views, renews the Landside pass'};
+const US_NAMES = {admin: 'Admin', editor: 'Editor', manager: 'Manager', viewer: 'Guest', amia_editor: 'AMIA Project Editor'};
+const US_HELP = {admin: 'everything', editor: 'changes the fleet', manager: 'views everything incl. GPS, changes nothing', viewer: 'views only', amia_editor: 'views, renews the Landside pass'};
 let US_ROWS = [];
 async function usCall(body){
   try{

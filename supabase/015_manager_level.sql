@@ -1,0 +1,5 @@
+-- 015_manager_level.sql (19 Nov 2026)
+-- Fifth user level: Manager (role key 'manager'). Reads everything a Viewer reads PLUS GPS positions; changes nothing.
+-- app_users role check now: admin | editor | viewer | amia_editor | manager.
+-- app.can_see_gps() = admin, editor or manager; policy gps_positions_read uses it (gps_odometer view unchanged, all members).
+-- Direct writes and the renew functions are unchanged, so a Manager cannot change anything.

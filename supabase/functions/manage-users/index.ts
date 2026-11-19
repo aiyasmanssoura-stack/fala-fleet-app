@@ -8,8 +8,8 @@ const cors = {
 };
 const json = (status: number, body: unknown) =>
   new Response(JSON.stringify(body), { status, headers: { ...cors, "Content-Type": "application/json" } });
-const ROLES = ["admin", "editor", "viewer", "amia_editor"];
-const NAMES: Record<string, string> = { admin: "Admin", editor: "Editor", viewer: "Guest", amia_editor: "AMIA Project Editor" };
+const ROLES = ["admin", "editor", "manager", "viewer", "amia_editor"];
+const NAMES: Record<string, string> = { admin: "Admin", editor: "Editor", manager: "Manager", viewer: "Guest", amia_editor: "AMIA Project Editor" };
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
