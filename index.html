@@ -516,6 +516,7 @@ th.sortable .sa{display:inline-block;width:1em;font-size:10px;opacity:.9}
 /* The figure scales with the tile it sits in, not the window: 'AED 1,001,450'
    ran out of its tile on a narrow card. cqw = the tile's own inner width. */
 #pgHired .tile,#pgFines .tile{container-type:inline-size}
+body.nomoney #tabFines,body.nomoney #pgFines,body.nomoney .mny{display:none!important}
 #pgHired .tile .val,#pgFines .tile .val{white-space:nowrap;font-size:clamp(15px,10.5cqw,27px)}
 
 /* the site tiles */
@@ -1198,7 +1199,7 @@ th.sortable .sa{display:inline-block;width:1em;font-size:10px;opacity:.9}
       <div id="hFirms"></div>
       <div id="hFirmTable" class="scroll" hidden><table>
         <thead><tr><th>Supplier</th><th class="n">Machines</th><th>What</th>
-          <th>Projects</th><th>Terms</th><th>LPO</th><th class="n">Rate</th></tr></thead>
+          <th>Projects</th><th>Terms</th><th>LPO</th><th class="n mny">Rate</th></tr></thead>
         <tbody id="hFirmBody"></tbody></table></div>
     </div>
 
@@ -1995,6 +1996,99 @@ let drawLeads = ()=>{};
    Expiry state is decided here, against the viewer's clock, exactly as
    the Renewals tab does — so an old copy of this file still reads
    correctly tomorrow. */
+(function(){
+  /* ================= EDIT A NUMBER OR TAG (20 Nov 2026) =====================
+     The reference / tag no. of a paper (vehicle or person) and the two diesel sensor numbers.
+     Admin: saved at once. Editor: sent to the Admin (Home > Waiting for your approval). Always written to the change log.
+     Saves through change_number (supabase/017_edit_numbers.sql). Refs come from window.APPREF (set in boot.js). */
+  const role = () => window.MYROLE || '';
+  const CAN = () => ['admin', 'editor'].includes(role());
+  const e = x => String(x == null ? '' : x).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+  const REF = () => window.APPREF || { v: {}, p: {} };
+  const has = (kind, id, tid) => { const m = (REF()[kind] || {})[id]; return !!(m && tid != null && Object.prototype.hasOwnProperty.call(m, tid)); };
+  const refOf = (kind, id, tid) => has(kind, id, tid) ? (REF()[kind][id][tid] || '') : '';
+  const BTN = 'margin-left:8px;padding:3px 10px;min-height:28px;font-size:12px';
+  const btn = (spec, text) => `<button type="button" class="btn" data-f="editno" data-no="${e(JSON.stringify(spec))}" style="${BTN}">${text || 'Edit no.'}</button>`;
+
+  window.refCell = (kind, id, tid) => { const r = refOf(kind, id, tid); return r ? `<span class="mono">${e(r)}</span>` : '<span class="dash">—</span>'; };
+  window.numPaperBtn = (kind, id, tid, label, title) => (CAN() && has(kind, id, tid))
+    ? btn({ title, items: [{ field: 'paper_ref', vehicle: kind === 'v' ? id : null, person: kind === 'p' ? id : null, type: tid, label, cur: refOf(kind, id, tid) }] }) : '';
+
+  /* a person's paper tile: shows the number and the Edit button */
+  const PT = { 'Licence Expiry': 'Driver Licence' };
+  window.numPersonBtn = (p, k) => {
+    const tn = PT[k] || k, tid = (window.APPPTYPES || {})[tn]; if(!p || !p._id || !tid || !has('p', p._id, tid)) return '';
+    const r = refOf('p', p._id, tid);
+    return `<div class="sm" style="margin-top:6px">No. ${r ? `<b class="mono">${e(r)}</b>` : '<span class="dash">not recorded</span>'}</div>`
+      + (CAN() ? `<div>${btn({ title: p['Name (as per passport)'], items: [{ field: 'paper_ref', vehicle: null, person: p._id, type: tid, label: k === 'Licence Expiry' ? 'Licence no.' : k + ' no.', cur: r }] }).replace('margin-left:8px', 'margin-left:0;margin-top:6px')}</div>` : '');
+  };
+
+  /* the "Tags and numbers" rows of a vehicle card */
+  const sensors = v => { const t = (v.tags || []).find(x => x.k === 'Diesel Sensor No.'); const a = t && t.v ? String(t.v).split(' / ') : []; return [a[0] || '', a[1] || '']; };
+  window.numTagRows = (v, rows) => {
+    if(!CAN()) return rows;
+    const inst = (v.tags || []).find(x => x.k === 'Diesel Sensor' && x.v === 'Installed');
+    return (inst && !rows.some(x => x.k === 'Diesel Sensor No.')) ? rows.concat([{ k: 'Diesel Sensor No.', v: '', _add: true }]) : rows;
+  };
+  window.numTagBtn = (v, t) => {
+    if(!CAN()) return '';
+    if(t.k === 'Diesel Sensor No.'){ const s = sensors(v);
+      return btn({ title: v.plate, items: [{ field: 'sensor_1', vehicle: v._id, person: null, type: null, label: 'Diesel sensor no. 1', cur: s[0] }, { field: 'sensor_2', vehicle: v._id, person: null, type: null, label: 'Diesel sensor no. 2', cur: s[1] }] }, t._add ? 'Add no.' : 'Edit no.'); }
+    if(t.k === 'FNRC Tag No.'){ const d = (v.dates || []).find(x => x.k === 'FNRC WB tag');
+      return d && d.tid ? window.numPaperBtn('v', v._id, d.tid, 'FNRC WB tag no.', v.plate) : ''; }
+    return '';
+  };
+
+  function open(spec){
+    if(document.getElementById('numDlg')) return;
+    const ADM = role() === 'admin';
+    const el2 = document.createElement('div'); el2.id = 'numDlg';
+    el2.style.cssText = 'position:fixed;inset:0;background:rgba(20,30,50,.45);z-index:1000;display:flex;align-items:center;justify-content:center;padding:16px;overflow:auto';
+    const fld = 'font:inherit;padding:11px 12px;border:1px solid var(--line,#c9c6bb);border-radius:8px;min-height:44px;box-sizing:border-box;width:100%;background:var(--card,#fff);color:inherit';
+    const lab = 'display:block;font-weight:600;font-size:13px;margin-bottom:5px';
+    el2.innerHTML = `<div role="dialog" aria-modal="true" aria-labelledby="numT" style="width:min(560px,100%);background:var(--card,#fff);color:var(--ink,inherit);border-radius:16px;border:1px solid var(--line,#d9d6cc);padding:24px 26px;box-sizing:border-box;display:flex;flex-direction:column;gap:14px">
+      <div><div class="sm" style="letter-spacing:.08em;text-transform:uppercase;font-weight:600">Edit number</div>
+        <h2 id="numT" style="margin:4px 0 0;font-size:22px">${e(spec.title)}</h2></div>
+      ${spec.items.map((it, i) => `<div><label for="num${i}" style="${lab}">${e(it.label)}</label><input id="num${i}" type="text" value="${e(it.cur)}" style="${fld}" autocomplete="off"></div>`).join('')}
+      <div class="sm" style="background:var(--soft,#f4f2ec);border-radius:10px;padding:11px 13px">${ADM
+        ? 'Saved at once. The old number stays in the change history.'
+        : 'The administrator must approve this before the number changes.'}</div>
+      <div><label for="numR" style="${lab}">Reason <span class="sm" style="font-weight:400">(optional)</span></label><input id="numR" type="text" style="${fld}"></div>
+      <div id="numErr" role="alert" style="color:#b3261e;font-size:13px;min-height:18px"></div>
+      <div style="display:flex;gap:10px;justify-content:flex-end"><button type="button" class="btn" id="numX">Cancel</button>
+        <button type="button" class="btn" id="numOk" style="background:var(--navy,#16315c);color:#fff">${ADM ? 'Save' : 'Send for approval'}</button></div></div>`;
+    document.body.appendChild(el2);
+    const close = () => el2.remove(), err = document.getElementById('numErr');
+    el2.addEventListener('click', ev => { if(ev.target === el2) close(); });
+    document.getElementById('numX').onclick = close; document.getElementById('num0').focus();
+    document.getElementById('numOk').onclick = async () => {
+      const ok = document.getElementById('numOk'); err.textContent = '';
+      const todo = spec.items.map((it, i) => ({ it, val: document.getElementById('num' + i).value.trim() })).filter(x => x.val !== String(x.it.cur || '').trim());
+      if(!todo.length){ err.textContent = 'Nothing changed.'; return; }
+      ok.disabled = true; ok.textContent = 'Saving…';
+      const why = document.getElementById('numR').value.trim() || null;
+      for(const x of todo){
+        const { error } = await sb.rpc('change_number', { p_field: x.it.field, p_vehicle: x.it.vehicle, p_person: x.it.person, p_type: x.it.type, p_new: x.val, p_reason: why, p_label: x.it.label });
+        if(error){ err.textContent = error.message; ok.disabled = false; ok.textContent = ADM ? 'Save' : 'Send for approval'; return; }
+      }
+      if(ADM){ err.style.color = '#1d6b3f'; err.textContent = 'Saved.'; setTimeout(() => location.reload(), 700); }
+      else {
+        try { const q = await sb.from('machine_change_requests').select('*').order('id', { ascending: false }).limit(300); if(!q.error) window.APPREQ = q.data; } catch(_){}
+        close();
+        const host = document.getElementById('fCard') || document.getElementById('pPeople') || document.body;
+        const n = document.createElement('div'); n.setAttribute('role', 'status');
+        n.style.cssText = 'background:#e6f4ec;border:1px solid #b9dfc8;color:#1d6b3f;border-radius:10px;padding:11px 14px;font-size:14px;font-weight:500;margin-bottom:12px';
+        n.textContent = 'Sent to the administrator for approval. The number changes after he approves it.';
+        host.insertBefore(n, host.firstChild); setTimeout(() => n.remove(), 8000);
+      }
+    };
+  }
+  document.addEventListener('click', ev => {
+    const b = ev.target.closest && ev.target.closest('[data-f="editno"]');
+    if(b){ try { open(JSON.parse(b.dataset.no)); } catch(_){} }
+  });
+})();
+
 (function(){
   const D = F, CLS = D.classes;
   const cix = c => Math.max(0, CLS.indexOf(c));
@@ -2898,7 +2992,7 @@ let drawLeads = ()=>{};
       <div class="ckv">
         ${cell('Type', f.type)}${cell('Make and model', f.make)}${cell('Year', f.year)}
         ${cell('Serial / chassis no.', f.chassis)}${cell('Plate or asset no.', f.number)}${cell('Engine no.', f.engine)}${cell('Registered to', f.owner)}
-        ${hired ? cell('Supplier', f.firm) + cell('LPO no.', f.lpo) + cell('Monthly rate', f.rate != null && f.rate !== '' ? 'AED ' + Number(f.rate).toLocaleString('en-GB') : '')
+        ${hired ? cell('Supplier', f.firm) + cell('LPO no.', f.lpo) + (window.NOMONEY ? '' : cell('Monthly rate', f.rate != null && f.rate !== '' ? 'AED ' + Number(f.rate).toLocaleString('en-GB') : ''))
           + cell('Operator', f.op) + cell('Hire start', mdD(f.start)) + cell('Hire end', mdD(f.end), 'still hired') : ''}
       </div>${mdOld(key)}${mdPending(key)}</div>`;
   }
@@ -2911,7 +3005,7 @@ let drawLeads = ()=>{};
     const p = (window.APPREQ || []).filter(r => String(r.vehicle_id) === String(vid) && r.status === 'pending');
     if(!p.length) return '';
     return `<div style="margin-top:12px;background:var(--soft,#f4f2ec);border-radius:10px;padding:10px 12px;font-size:13px"><b>Waiting for the administrator's approval</b>
-      ${p.map(r => `<div class="sm">${FN[r.field]}: ${mdE(r.old_value || 'empty')} &rarr; <b>${mdE(r.new_value || 'empty')}</b> &middot; asked by ${mdE((r.requested_email || '').split('@')[0])}</div>`).join('')}</div>`;
+      ${p.map(r => `<div class="sm">${FN[r.field] || mdE(r.label || r.field)}: ${mdE(r.old_value || 'empty')} &rarr; <b>${mdE(r.new_value || 'empty')}</b> &middot; asked by ${mdE((r.requested_email || '').split('@')[0])}</div>`).join('')}</div>`;
   }
   window.mdPanelHired = m => mdBox('hired', m.vid, { type: m.type, make: m.make, year: m.year, chassis: m.chassis, number: m.number, engine: m.engine, owner: m.owner,
     firm: m.firm && m.firm !== '(supplier not stated)' ? m.firm : '', lpo: m.lpo, rate: m.rate, op: m.drv && m.drv.toUpperCase() !== 'NA' ? m.drv : '', start: m.start, end: m.end });
@@ -3060,7 +3154,7 @@ let drawLeads = ()=>{};
       const r = back[i], d = document.getElementById('hBackDetail');
       d.innerHTML = `<div class="panel" style="margin-top:14px"><div class="ph"><h3>${e(r.plate)} · ${e(r.type)}</h3><span class="pill p-gap">sent back ${day(r.end)}</span></div>
         <div class="sm" style="line-height:1.7">Supplier: <b>${e(r.firm)}</b> · Project: <b>${e(r.proj)}</b>${r.site&&r.site!==r.proj?' ('+e(r.site)+')':''}<br>
-        Hired from: <b>${day(r.start)}</b> · LPO: <b>${r.lpo?e(r.lpo):'—'}</b> · Rate: <b>${r.rate?nf.format(r.rate)+' / month':'—'}</b> · Diesel: <b>${e(r.diesel||'not stated')}</b>${r.drv?' · Operator: <b>'+e(r.drv)+'</b>':''}</div>
+        Hired from: <b>${day(r.start)}</b> · LPO: <b>${r.lpo?e(r.lpo):'—'}</b>${window.NOMONEY?'':` · Rate: <b>${r.rate?nf.format(r.rate)+' / month':'—'}</b>`} · Diesel: <b>${e(r.diesel||'not stated')}</b>${r.drv?' · Operator: <b>'+e(r.drv)+'</b>':''}</div>
         ${adm?`<div style="margin-top:12px"><button type="button" class="btn" id="hBackBring">Bring back to the hired list</button> <span id="hBackErr" class="sm" style="color:#b3261e"></span></div>`:''}</div>${window.mmPanel?window.mmPanel(r.mm):''}`;
       d.scrollIntoView({behavior:'smooth',block:'nearest'});
       const b = document.getElementById('hBackBring');
@@ -3678,12 +3772,12 @@ let drawLeads = ()=>{};
       ${v.chassis ? `<div><div class="lbl">Chassis no</div><div class="v mono">${esc(v.chassis)}</div></div>` : ''}
       ${v.engine && !['NA','N/A'].includes(v.engine.toUpperCase()) ? `<div><div class="lbl">Engine no</div><div class="v mono">${esc(v.engine)}</div></div>` : ''}
       ${v.owner ? `<div><div class="lbl">Registered to</div><div class="v">${esc(v.owner)}</div></div>` : ''}
-      ${tagRows.map(t=>`<div><div class="lbl">${esc(t.k)}</div><div class="v mono">${esc(t.v)}</div></div>`).join('')}</div></div>`;
+      ${(window.numTagRows ? window.numTagRows(v, tagRows) : tagRows).map(t=>`<div><div class="lbl">${esc(t.k)}</div><div class="v mono">${t.v ? esc(t.v) : '<span class="dash">not recorded</span>'}${window.numTagBtn ? window.numTagBtn(v, t) : ''}</div></div>`).join('')}</div></div>`;
 
     const kpi = (l,n,cls) => `<div class="ckpi"><div class="lbl">${l}</div><b class="${cls||''}">${n}</b></div>`;
     const strip = `<div class="panel ckpis">${kpi('Papers', ex.length ? ex.length + ' expired' : so.length ? so.length + ' due soon' : 'all valid', ex.length ? 'bad' : so.length ? 'warn' : '')}
       ${kpi('Service', nSv + ' job' + (nSv===1?'':'s'))}${kpi('Diesel', dzM === null ? '—' : NUM.format(Math.round(dzM)) + ' L')}
-      ${kpi('Fines', tick + acc ? (tick + acc) + ' on record' : 'none')}${kpi('Tyres', nTy || '—')}</div>`;
+      ${window.NOMONEY?'':kpi('Fines', tick + acc ? (tick + acc) + ' on record' : 'none')}${kpi('Tyres', nTy || '—')}</div>`;
 
     const statusPill = d => { const s = state(d), l = d.st==='date' ? until(d.v) : null;
       if(s==='ex') return `<span class="pill p-crit">Expired ${-l} day${-l===1?'':'s'}</span>`;
@@ -3693,10 +3787,11 @@ let drawLeads = ()=>{};
       return `<span class="pill p-gap">${s==='note' ? 'noted' : 'not recorded'}</span>`; };
     const order = {ex:0, so:1, task:2, note:3, blank:4, ok:5};
     const comp = `<div class="panel"><div class="ph"><h3>Compliance</h3></div><div class="scroll"><table>
-      <thead><tr><th>Paper</th><th class="n">Expires</th><th>Status</th><th></th></tr></thead><tbody>
+      <thead><tr><th>Paper</th><th>No.</th><th class="n">Expires</th><th>Status</th><th></th></tr></thead><tbody>
       ${live.slice().sort((a,b)=>order[state(a)]-order[state(b)]).map(d=>`<tr><td><b>${esc(d.k)}</b></td>
+        <td class="sm" style="word-break:break-all">${window.refCell ? window.refCell('v', d.vid, d.tid) : ''}</td>
         <td class="n id">${d.st==='date' ? fmt.format(parse(d.v)) : (d.st==='note' ? esc(d.v) : '<span class="dash">—</span>')}</td>
-        <td>${statusPill(d)}</td><td class="n">${(CAN_EDIT() || (AMIA_PAPER(d.k) && d.st === 'date')) && d.tid ? `<button type="button" class="btn" data-f="renew" data-vid="${d.vid}" data-tid="${d.tid}" style="padding:3px 10px;min-height:28px;font-size:12px">Renew</button>` : ''}</td></tr>`).join('')}
+        <td>${statusPill(d)}</td><td class="n">${(CAN_EDIT() || (AMIA_PAPER(d.k) && d.st === 'date')) && d.tid ? `<button type="button" class="btn" data-f="renew" data-vid="${d.vid}" data-tid="${d.tid}" style="padding:3px 10px;min-height:28px;font-size:12px">Renew</button>` : ''}${window.numPaperBtn && (d.st === 'date' || d.st === 'note') ? window.numPaperBtn('v', d.vid, d.tid, d.k + ' no.', v.plate) : ''}</td></tr>`).join('')}
       </tbody></table></div></div>`;
 
     const attn = [...ex.map(d=>`<div class="catt"><span class="pill p-crit">Expired</span> ${esc(d.k)} — ${-until(d.v)} days ago</div>`),
@@ -3738,7 +3833,7 @@ let drawLeads = ()=>{};
       {k:'ty', t:'Tyres', n:nTy, h:tyrePanel(v, false)},
       {k:'sv', t:'Service and maintenance', n:nSv, h:servicePanel(v)},
       {k:'di', t:'Diesel', h:dieselPanel(v) || none},
-      {k:'fi', t:'Fines', n:tick + acc, h:finesPanel(v) + accidentPanel(v)},
+      ...(window.NOMONEY ? [] : [{k:'fi', t:'Fines', n:tick + acc, h:finesPanel(v) + accidentPanel(v)}]),
       {k:'hi', t:'History', h:(driverLogPanel(v) + sitesPanel(v)) || none}
     ];
     const cur = (window.__cardTab && tabs.some(t=>t.k===window.__cardTab.k && window.__cardTab.p===v.plate)) ? window.__cardTab.k : 'ov';
@@ -3934,14 +4029,14 @@ let drawLeads = ()=>{};
       if(!v || ['NA','N/A'].includes(v.toUpperCase())){ na.push(k); continue; }
       if(!(v.length===10 && v[4]==='-')){
         cells.push(`<div class="dcell note"><div class="lbl">${esc(k)}</div>
-          <div class="d">${esc(v)}</div><div class="left sm">noted</div>${window.prenewBtn ? window.prenewBtn(p, k) : ""}</div>`);
+          <div class="d">${esc(v)}</div><div class="left sm">noted</div>${window.prenewBtn ? window.prenewBtn(p, k) : ""}${window.numPersonBtn ? window.numPersonBtn(p, k) : ""}</div>`);
         continue;
       }
       const left = until(v), thr = THR[k]||30;
       const st = left<0 ? 'ex' : (left<=thr ? 'so' : 'ok');
       const word = left<0 ? `${-left} days ago` : (left===0?'today':`${left} days left`);
       cells.push(`<div class="dcell ${st}"><div class="lbl">${esc(k)}</div>
-        <div class="d">${fmt.format(parse(v))}</div><div class="left">${word}</div>${window.prenewBtn ? window.prenewBtn(p, k) : ""}</div>`);
+        <div class="d">${fmt.format(parse(v))}</div><div class="left">${word}</div>${window.prenewBtn ? window.prenewBtn(p, k) : ""}${window.numPersonBtn ? window.numPersonBtn(p, k) : ""}</div>`);
     }
     const st = p.Status || '';
     const stk = st==='Active' ? 'p-ok' : (st==='Left' ? 'p-gap' : 'p-warn');
@@ -4513,7 +4608,7 @@ let drawLeads = ()=>{};
     const t = HR.tally;
     el('hTiles').innerHTML = [
       ['Hired in', t.n, 'machines on hire'],
-      ['Monthly rent', money(t.rate), `${t.rated} of ${t.n} have a rate`],
+      ...(window.NOMONEY ? [] : [['Monthly rent', money(t.rate), `${t.rated} of ${t.n} have a rate`]]),
       ['Suppliers', t.firms, `across ${t.projects} projects`],
       ['With a driver', t.withDriver, 'the rest we operate'],
       ['Service on us', t.svcOnUs, 'the JCBs — all else included'],
@@ -4540,7 +4635,7 @@ let drawLeads = ()=>{};
           <span class="fnum">${f.n}<span class="sm"> machine${f.n>1?'s':''}</span></span></span>
         <span class="fkinds">${kinds}</span>
         <span class="fmeta">${esc(f.projects.join(' · '))}</span>
-        <span class="gf">${cond}${f.rate?`<span class="pill p-hire">${money(f.rate)} / month${
+        <span class="gf">${cond}${window.NOMONEY?'':f.rate?`<span class="pill p-hire">${money(f.rate)} / month${
           f.rated<f.n?` <span class="sm">(${f.rated} of ${f.n} priced)</span>`:''}</span>`
           :'<span class="pill p-gap">no rate recorded</span>'}</span>
         ${f.lpos.length?`<span class="fmeta">LPO ${f.lpos.map(esc).join(' · ')}</span>`:''}
@@ -4567,7 +4662,7 @@ let drawLeads = ()=>{};
         <td class="sm">${terms}</td>
         <td class="sm">${f.lpos.length?f.lpos.map(esc).join(' · ')
           :'<span class="dash">none</span>'}</td>
-        <td class="n">${f.rate?money(f.rate):'<span class="dash">—</span>'}</td></tr>`;
+        <td class="n mny">${f.rate?money(f.rate):'<span class="dash">—</span>'}</td></tr>`;
     }).join('');
 
     /* ---- by project ---- */
@@ -4575,7 +4670,7 @@ let drawLeads = ()=>{};
       <button class="ptile" type="button" data-h="proj" data-proj="${esc(p.proj)}"${p.status==='archived'?' style="opacity:.7;border-style:dashed"':''}>
         <div class="pn">${esc(p.proj)}${p.status==='archived'?' <span class="pill p-crit">Archived</span>':''}</div>
         <div class="pv">${p.n}</div>
-        <div class="pr">${p.rate ? money(p.rate)+' / month' : 'rate not recorded'}</div>
+        ${window.NOMONEY?'':`<div class="pr">${p.rate ? money(p.rate)+' / month' : 'rate not recorded'}</div>`}
         <div class="pj"><span>at ${esc(p.site)} · ${p.firms} supplier${p.firms>1?'s':''}</span></div>
       </button>`).join('');
 
@@ -4602,7 +4697,7 @@ let drawLeads = ()=>{};
           <span class="types">${chips}</span>
         </span>
         <span class="catfoot">
-          ${g.rate?`<span class="pill p-hire">${money(g.rate)} / month</span>`
+          ${window.NOMONEY?'':g.rate?`<span class="pill p-hire">${money(g.rate)} / month</span>`
                   :'<span class="pill p-gap">no rate recorded</span>'}
           ${g.dieselOurs === g.n ? '<span class="pill p-task">diesel on us</span>'
             : g.dieselOurs ? `<span class="pill p-task">${g.dieselOurs} of ${g.n} diesel on us</span>`
@@ -4683,7 +4778,7 @@ let drawLeads = ()=>{};
             ${m.idkind==='serial'?`<div class="sm" style="margin-top:5px">Serial number, not a plate.</div>`
               :m.idkind==='none'?`<div class="sm" style="margin-top:5px">No plate — identified by type.</div>`:''}
           </div>
-          <div style="text-align:right">
+          <div class="mny" style="text-align:right">
             <div class="k">Monthly rate</div>
             <div class="v" style="font-size:19px">${m.rate?money(m.rate):'<span class="dash">not recorded</span>'}</div>
           </div>
@@ -4762,7 +4857,7 @@ let drawLeads = ()=>{};
           ${esc(m.plate)}</span>
         <span class="vmeta">${esc(m.type)} · ${esc(midOf(m))}</span>
         <span class="vmeta">${m.drv&&m.drv.toUpperCase()!=='NA'?esc(m.drv):'<span class="dash">no driver named</span>'}</span>
-        <span class="vfoot">${m.rate?`<span class="pill p-hire">${money(m.rate)}</span>`:'<span class="pill p-gap">no rate</span>'}
+        <span class="vfoot">${window.NOMONEY?'':m.rate?`<span class="pill p-hire">${money(m.rate)}</span>`:'<span class="pill p-gap">no rate</span>'}
           ${terms(m)}</span>
       </span></button>`;
 
@@ -4778,12 +4873,12 @@ let drawLeads = ()=>{};
         ? (m.dieselOurs?'<b>on us</b>':esc(m.diesel))
         : '<span class="dash">—</span>'}</td>
       <td class="sm">${m.lpo?esc(m.lpo):'<span class="dash">no LPO</span>'}</td>
-      <td class="n">${m.rate?money(m.rate):'<span class="dash">—</span>'}</td></tr>`;
+      <td class="n mny">${m.rate?money(m.rate):'<span class="dash">—</span>'}</td></tr>`;
 
     el('hList').innerHTML = `
       <div class="hcrumb"><a data-h="home">Hired In</a><span>›</span><b>${esc(key)}</b></div>
       <h2>${esc(key)} <span class="sm">— ${mine.length} machine${mine.length>1?'s':''}</span></h2>
-      <p class="cap">${rate?money(rate)+' a month':'No rate recorded'} · ${sub}</p>
+      <p class="cap">${window.NOMONEY?'':(rate?money(rate)+' a month':'No rate recorded')+' · '}${sub}</p>
       <div class="listbar"><span class="sm" style="flex:1"></span>
         <div class="viewsw" role="group" aria-label="How to show this list">
           <button type="button" id="hvGrid" aria-pressed="true">Grid</button>
@@ -4793,7 +4888,7 @@ let drawLeads = ()=>{};
       <div id="hTable" class="scroll" hidden><table>
         <thead><tr><th>Plate</th><th>Type</th><th>${midHead}</th>
           <th>Operator</th><th>Terms</th><th>Diesel</th><th>LPO</th>
-          <th class="n">Rate</th></tr></thead>
+          <th class="n mny">Rate</th></tr></thead>
         <tbody>${mine.map(row).join('')}</tbody></table></div>
       <div class="linkrow"><a class="btn" data-h="home">← Back</a></div>`;
     el('hvGrid').onclick = ()=>setView('grid');
@@ -5100,7 +5195,8 @@ let drawLeads = ()=>{};
             </tbody></table></div></div>`;}).join('');
         return `<h2 class="lpart">By month <span>${keys.length}</span></h2>${sum}<h2 class="lpart">Month by month</h2>${det}`;
       } };
-  const ORDER = ['diesel','gps','tahseel','fnrc','fujairah','service','finemonths'];
+  if(window.NOMONEY) delete LISTS.finemonths;
+  const ORDER = ['diesel','gps','tahseel','fnrc','fujairah','service','finemonths'].filter(k=>LISTS[k]);
   const count = k => LISTS[k].count ? LISTS[k].count() : LISTS[k].secs().reduce((n,g)=>n+g.vs.length,0);
 
   const PRINTER = '<svg viewBox="0 0 17 17" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 6V2h8v4M4.5 12.5h-2v-6h12v6h-2M4.5 10h8v5h-8z"/></svg>';
@@ -5299,7 +5395,7 @@ function homeRequests(top){
   if(!p.length) return '<div style="margin-top:18px"><h3 style="margin:0 0 6px;font-size:17px">Requests waiting</h3><p class="sm" style="margin:0">Nothing is waiting for your approval.</p></div>';
   return `<div style="margin:0 0 18px;border:1px solid var(--warn,#d9a441);background:var(--soft,#f4f2ec);border-radius:12px;padding:14px 16px"><h3 style="margin:0 0 8px;font-size:17px">Waiting for your approval <span class="pill p-warn">${p.length}</span></h3>
     <div class="scroll"><table><thead><tr><th>Vehicle</th><th>What</th><th>Old</th><th>New</th><th>Asked by</th><th>Reason</th><th></th></tr></thead><tbody>
-    ${p.map(r => `<tr><td><b>${esc(plateOf(r.vehicle_id))}</b></td><td>${esc(FN[r.field] || r.field)}</td><td class="sm">${esc(r.old_value || 'empty')}</td><td><b>${esc(r.new_value || 'empty')}</b></td>
+    ${p.map(r => `<tr><td><b>${esc(r.vehicle_id ? plateOf(r.vehicle_id) : ((window.APPPEOPLE || []).find(x => x.id === r.person_id) || {}).passport_name || 'person ' + r.person_id)}</b></td><td>${esc(FN[r.field] || r.label || r.field)}</td><td class="sm">${esc(r.old_value || 'empty')}</td><td><b>${esc(r.new_value || 'empty')}</b></td>
       <td class="sm">${esc(homeWho(r.requested_email))}<br>${esc(homeWhen(r.requested_at))}</td><td class="sm">${esc(r.reason || '')}</td>
       <td style="white-space:nowrap"><button type="button" class="btn" data-mreq="${r.id}" data-ok="1" style="background:var(--navy,#16315c);color:#fff">Approve</button>
         <button type="button" class="btn" data-mreq="${r.id}" data-ok="0">Reject</button></td></tr>`).join('')}</tbody></table></div>
@@ -5618,7 +5714,7 @@ const PAGES = {fleet:['tabFleet','pgFleet'], renewals:['tabRenew','pgRenew'],
    Without this the tab router and the fleet router both wrote the hash and
    overwrote each other on every click. */
 function show(name, push){
-  if(!PAGES[name]) name = 'fleet';
+  if(!PAGES[name] || (window.NOMONEY && name === 'fines')) name = 'fleet';
   for(const [k,[t,p]] of Object.entries(PAGES)){
     const on = k===name;
     el(t).setAttribute('aria-selected', on);
@@ -5882,7 +5978,7 @@ async function pull(table) {
 }
 async function start() {
   const names = ['vehicles', 'people', 'sites', 'paper_types', 'papers', 'log_entries', 'suppliers', 'projects', 'hire_terms', 'hire_postings', 'tyres', 'tyre_moves', 'service_jobs', 'fines', 'report_files', 'diesel_lines', 'machine_months', 'vehicle_old_numbers', 'board_history', 'coupling_history'];
-  const t = await Promise.all(names.map(pull));
+  const t = await Promise.all(names.map(n => pull(n === 'hire_terms' ? 'hire_terms_open' : n)));
   const db = {}; names.forEach((n, i) => { db[n] = t[i]; });
   const today = new Date(); const pad = n => String(n).padStart(2, '0');
   const iso = `${today.getFullYear()}-${pad(today.getMonth() + 1)}-${pad(today.getDate())}`;
@@ -5891,6 +5987,8 @@ async function start() {
   window.APPDATA = Object.assign({}, X, { F, R: AppData.buildR(F, db, iso), M: AppData.buildM(F, db, iso, window.GEO), PPL: AppData.buildPPL(F), HIRE: AppData.buildHIRE(db, iso), FINES: AppData.buildFINES(db) });   // HIRE, FINES: next steps
   window.APPPEOPLE = db.people; window.APPSITES = db.sites; window.APPPROJECTS = db.projects; window.APPSUPPLIERS = (db.suppliers || []).map(x => ({ id: x.id, name: x.name }));
   try { const u = (await sb.auth.getUser()).data.user; const r = await sb.from('app_users').select('role').eq('id', u.id).maybeSingle(); window.MYROLE = r.data ? r.data.role : ''; } catch (e) { window.MYROLE = ''; }
+  window.NOMONEY = !['admin', 'editor', 'manager'].includes(window.MYROLE || '');   // Guest and AMIA Project Editor: no fines, accidents or hired prices
+  if (window.NOMONEY) document.body.classList.add('nomoney');
   window.APPLOG = [];
   // old plate / asset numbers: search for an old number leads to the vehicle; the Machine details box lists them
   window.APPOLDNUMS = []; window.APPOLDBYVEH = {};
@@ -5905,6 +6003,8 @@ async function start() {
   window.APPHTYPES = {}; (db.paper_types || []).filter((t) => t.applies_to === 'vehicle' && (t.name === 'Landside Gate Pass' || t.name === 'Hired driver Landside Pass')).forEach((t) => { window.APPHTYPES[t.name] = t.id; });
   window.APPPTYPES = {}; (db.paper_types || []).filter((t) => t.applies_to === 'person').forEach((t) => { window.APPPTYPES[t.name] = t.id; });
   try { const q = await sb.from('machine_change_requests').select('*').order('id', { ascending: false }).limit(300); if (!q.error) window.APPREQ = q.data; } catch (e) {}
+  window.APPREF = { v: {}, p: {} };   // reference no. of every current paper: v[vehicle id][paper type id], p[person id][paper type id]
+  (db.papers || []).forEach((x) => { if (!x.is_current) return; if (x.vehicle_id) (window.APPREF.v[x.vehicle_id] = window.APPREF.v[x.vehicle_id] || {})[x.paper_type_id] = x.ref_no || ''; if (x.person_id) (window.APPREF.p[x.person_id] = window.APPREF.p[x.person_id] || {})[x.paper_type_id] = x.ref_no || ''; });
   window.APPGPS = {};
   try { const g = await sb.from(['admin','editor','manager'].includes(window.MYROLE||'') ? 'gps_positions' : 'gps_odometer').select('*'); if (!g.error) g.data.forEach(r => { window.APPGPS[r.vehicle_id] = r; }); } catch (e) {}
   if (window.MYROLE === 'admin') { try { const r = await sb.from('change_log').select('*').order('id', { ascending: false }).limit(500); if (!r.error) window.APPLOG = r.data; } catch (e) {} }
