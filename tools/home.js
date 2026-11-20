@@ -154,7 +154,7 @@ function homeRequests(top){
   if(!p.length) return '<div style="margin-top:18px"><h3 style="margin:0 0 6px;font-size:17px">Requests waiting</h3><p class="sm" style="margin:0">Nothing is waiting for your approval.</p></div>';
   return `<div style="margin:0 0 18px;border:1px solid var(--warn,#d9a441);background:var(--soft,#f4f2ec);border-radius:12px;padding:14px 16px"><h3 style="margin:0 0 8px;font-size:17px">Waiting for your approval <span class="pill p-warn">${p.length}</span></h3>
     <div class="scroll"><table><thead><tr><th>Vehicle</th><th>What</th><th>Old</th><th>New</th><th>Asked by</th><th>Reason</th><th></th></tr></thead><tbody>
-    ${p.map(r => `<tr><td><b>${esc(plateOf(r.vehicle_id))}</b></td><td>${esc(FN[r.field] || r.field)}</td><td class="sm">${esc(r.old_value || 'empty')}</td><td><b>${esc(r.new_value || 'empty')}</b></td>
+    ${p.map(r => `<tr><td><b>${esc(r.vehicle_id ? plateOf(r.vehicle_id) : ((window.APPPEOPLE || []).find(x => x.id === r.person_id) || {}).passport_name || 'person ' + r.person_id)}</b></td><td>${esc(FN[r.field] || r.label || r.field)}</td><td class="sm">${esc(r.old_value || 'empty')}</td><td><b>${esc(r.new_value || 'empty')}</b></td>
       <td class="sm">${esc(homeWho(r.requested_email))}<br>${esc(homeWhen(r.requested_at))}</td><td class="sm">${esc(r.reason || '')}</td>
       <td style="white-space:nowrap"><button type="button" class="btn" data-mreq="${r.id}" data-ok="1" style="background:var(--navy,#16315c);color:#fff">Approve</button>
         <button type="button" class="btn" data-mreq="${r.id}" data-ok="0">Reject</button></td></tr>`).join('')}</tbody></table></div>

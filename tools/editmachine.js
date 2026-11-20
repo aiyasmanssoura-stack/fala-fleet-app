@@ -13,7 +13,7 @@
       <div class="ckv">
         ${cell('Type', f.type)}${cell('Make and model', f.make)}${cell('Year', f.year)}
         ${cell('Serial / chassis no.', f.chassis)}${cell('Plate or asset no.', f.number)}${cell('Engine no.', f.engine)}${cell('Registered to', f.owner)}
-        ${hired ? cell('Supplier', f.firm) + cell('LPO no.', f.lpo) + cell('Monthly rate', f.rate != null && f.rate !== '' ? 'AED ' + Number(f.rate).toLocaleString('en-GB') : '')
+        ${hired ? cell('Supplier', f.firm) + cell('LPO no.', f.lpo) + (window.NOMONEY ? '' : cell('Monthly rate', f.rate != null && f.rate !== '' ? 'AED ' + Number(f.rate).toLocaleString('en-GB') : ''))
           + cell('Operator', f.op) + cell('Hire start', mdD(f.start)) + cell('Hire end', mdD(f.end), 'still hired') : ''}
       </div>${mdOld(key)}${mdPending(key)}</div>`;
   }
@@ -26,7 +26,7 @@
     const p = (window.APPREQ || []).filter(r => String(r.vehicle_id) === String(vid) && r.status === 'pending');
     if(!p.length) return '';
     return `<div style="margin-top:12px;background:var(--soft,#f4f2ec);border-radius:10px;padding:10px 12px;font-size:13px"><b>Waiting for the administrator's approval</b>
-      ${p.map(r => `<div class="sm">${FN[r.field]}: ${mdE(r.old_value || 'empty')} &rarr; <b>${mdE(r.new_value || 'empty')}</b> &middot; asked by ${mdE((r.requested_email || '').split('@')[0])}</div>`).join('')}</div>`;
+      ${p.map(r => `<div class="sm">${FN[r.field] || mdE(r.label || r.field)}: ${mdE(r.old_value || 'empty')} &rarr; <b>${mdE(r.new_value || 'empty')}</b> &middot; asked by ${mdE((r.requested_email || '').split('@')[0])}</div>`).join('')}</div>`;
   }
   window.mdPanelHired = m => mdBox('hired', m.vid, { type: m.type, make: m.make, year: m.year, chassis: m.chassis, number: m.number, engine: m.engine, owner: m.owner,
     firm: m.firm && m.firm !== '(supplier not stated)' ? m.firm : '', lpo: m.lpo, rate: m.rate, op: m.drv && m.drv.toUpperCase() !== 'NA' ? m.drv : '', start: m.start, end: m.end });

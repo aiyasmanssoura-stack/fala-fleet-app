@@ -85,7 +85,7 @@
       ${v.chassis ? `<div><div class="lbl">Chassis no</div><div class="v mono">${esc(v.chassis)}</div></div>` : ''}
       ${v.engine && !['NA','N/A'].includes(v.engine.toUpperCase()) ? `<div><div class="lbl">Engine no</div><div class="v mono">${esc(v.engine)}</div></div>` : ''}
       ${v.owner ? `<div><div class="lbl">Registered to</div><div class="v">${esc(v.owner)}</div></div>` : ''}
-      ${tagRows.map(t=>`<div><div class="lbl">${esc(t.k)}</div><div class="v mono">${esc(t.v)}</div></div>`).join('')}</div></div>`;
+      ${(window.numTagRows ? window.numTagRows(v, tagRows) : tagRows).map(t=>`<div><div class="lbl">${esc(t.k)}</div><div class="v mono">${t.v ? esc(t.v) : '<span class="dash">not recorded</span>'}${window.numTagBtn ? window.numTagBtn(v, t) : ''}</div></div>`).join('')}</div></div>`;
 
     const kpi = (l,n,cls) => `<div class="ckpi"><div class="lbl">${l}</div><b class="${cls||''}">${n}</b></div>`;
     const strip = `<div class="panel ckpis">${kpi('Papers', ex.length ? ex.length + ' expired' : so.length ? so.length + ' due soon' : 'all valid', ex.length ? 'bad' : so.length ? 'warn' : '')}
@@ -100,10 +100,11 @@
       return `<span class="pill p-gap">${s==='note' ? 'noted' : 'not recorded'}</span>`; };
     const order = {ex:0, so:1, task:2, note:3, blank:4, ok:5};
     const comp = `<div class="panel"><div class="ph"><h3>Compliance</h3></div><div class="scroll"><table>
-      <thead><tr><th>Paper</th><th class="n">Expires</th><th>Status</th><th></th></tr></thead><tbody>
+      <thead><tr><th>Paper</th><th>No.</th><th class="n">Expires</th><th>Status</th><th></th></tr></thead><tbody>
       ${live.slice().sort((a,b)=>order[state(a)]-order[state(b)]).map(d=>`<tr><td><b>${esc(d.k)}</b></td>
+        <td class="sm" style="word-break:break-all">${window.refCell ? window.refCell('v', d.vid, d.tid) : ''}</td>
         <td class="n id">${d.st==='date' ? fmt.format(parse(d.v)) : (d.st==='note' ? esc(d.v) : '<span class="dash">—</span>')}</td>
-        <td>${statusPill(d)}</td><td class="n">${(CAN_EDIT() || (AMIA_PAPER(d.k) && d.st === 'date')) && d.tid ? `<button type="button" class="btn" data-f="renew" data-vid="${d.vid}" data-tid="${d.tid}" style="padding:3px 10px;min-height:28px;font-size:12px">Renew</button>` : ''}</td></tr>`).join('')}
+        <td>${statusPill(d)}</td><td class="n">${(CAN_EDIT() || (AMIA_PAPER(d.k) && d.st === 'date')) && d.tid ? `<button type="button" class="btn" data-f="renew" data-vid="${d.vid}" data-tid="${d.tid}" style="padding:3px 10px;min-height:28px;font-size:12px">Renew</button>` : ''}${window.numPaperBtn && (d.st === 'date' || d.st === 'note') ? window.numPaperBtn('v', d.vid, d.tid, d.k + ' no.', v.plate) : ''}</td></tr>`).join('')}
       </tbody></table></div></div>`;
 
     const attn = [...ex.map(d=>`<div class="catt"><span class="pill p-crit">Expired</span> ${esc(d.k)} — ${-until(d.v)} days ago</div>`),
