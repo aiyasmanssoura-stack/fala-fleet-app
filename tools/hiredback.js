@@ -26,7 +26,7 @@
       const r = back[i], d = document.getElementById('hBackDetail');
       d.innerHTML = `<div class="panel" style="margin-top:14px"><div class="ph"><h3>${e(r.plate)} · ${e(r.type)}</h3><span class="pill p-gap">sent back ${day(r.end)}</span></div>
         <div class="sm" style="line-height:1.7">Supplier: <b>${e(r.firm)}</b> · Project: <b>${e(r.proj)}</b>${r.site&&r.site!==r.proj?' ('+e(r.site)+')':''}<br>
-        Hired from: <b>${day(r.start)}</b> · LPO: <b>${r.lpo?e(r.lpo):'—'}</b>${window.NOPRICES?'':` · Rate: <b>${r.rate?nf.format(r.rate)+' / month':'—'}</b>`} · Diesel: <b>${e(r.diesel||'not stated')}</b>${r.drv?' · Operator: <b>'+e(r.drv)+'</b>':''}</div>
+        Hired from: <b>${day(r.start)}</b> · LPO: <b>${r.lpo?e(r.lpo):'—'}</b>${window.NOMONEY?'':` · Rate: <b>${r.rate?nf.format(r.rate)+' / month':'—'}</b>`} · Diesel: <b>${e(r.diesel||'not stated')}</b>${r.drv?' · Operator: <b>'+e(r.drv)+'</b>':''}</div>
         ${adm?`<div style="margin-top:12px"><button type="button" class="btn" id="hBackBring">Bring back to the hired list</button> <span id="hBackErr" class="sm" style="color:#b3261e"></span></div>`:''}</div>${window.mmPanel?window.mmPanel(r.mm):''}`;
       d.scrollIntoView({behavior:'smooth',block:'nearest'});
       const b = document.getElementById('hBackBring');

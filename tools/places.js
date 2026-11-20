@@ -139,9 +139,9 @@ function renderSettings(){
       ${prs.filter(p => p.status !== 'archived').map(prow).join('')}${prs.filter(p => p.status === 'archived').map(prow).join('')}</tbody></table></div>`;
     el('plAddProj').onclick = () => plProjectDialog(null);
   }else if(view === 'users'){
-    root.innerHTML = head('Users', '<button type="button" class="btn" id="usAdd" style="background:var(--navy,#16315c);color:#fff">+ Add user</button>') + `<div class="scroll" id="usBox"><p class="sm">Loading…</p></div><div id="permBox" style="margin-top:28px"></div>`;
+    root.innerHTML = head('Users', '<button type="button" class="btn" id="usAdd" style="background:var(--navy,#16315c);color:#fff">+ Add user</button>') + `<div class="scroll" id="usBox"><p class="sm">Loading…</p></div>`;
     el('usAdd').onclick = () => usDialog(null);
-    usLoad(); permLoad();
+    usLoad();
   }else{
     root.innerHTML = `<h2 style="margin:0 0 14px">Settings</h2><div style="display:grid;gap:8px;max-width:760px">${CARDS.map(c =>
       `<a href="#settings/${c[0]}" class="setcard" style="display:flex;align-items:center;gap:14px;padding:14px 16px;border:1px solid var(--line,#d9d6cc);border-radius:10px;background:var(--card,#fff);color:inherit;text-decoration:none">${ICON[c[0]]}<span style="flex:1"><b style="display:block;font-size:15px">${c[1]}</b><span class="sm">${c[2]}</span></span><span class="sm" style="font-size:18px">&rsaquo;</span></a>`).join('')}</div>
@@ -169,33 +169,6 @@ async function usLoad(){
   box.innerHTML = `<table><thead><tr><th>Email</th><th>Level</th><th>Status</th></tr></thead><tbody>${US_ROWS.map(u =>
     `<tr class="rowlink" data-pl-user="${esc(u.id)}" style="cursor:pointer${u.off ? ';opacity:.6' : ''}"><td class="id"><b>${esc(u.email)}</b>${u.me ? ' <span class="sm">(you)</span>' : ''}</td><td>${esc(US_NAMES[u.role] || u.role)}</td><td>${u.off ? '<span class="pill p-crit">Switched off</span>' : 'Active'}</td></tr>`).join('')}</tbody></table>`;
 }
-
-/* ---- What each level can see (Admin): fines and accidents, hired prices, GPS. Guest and AMIA Project Editor have switches; Admin, Manager and Editor always see everything. ---- */
-const PERM_COLS = [['see_fines', 'Fines and accidents'], ['see_prices', 'Hired prices'], ['see_gps', 'GPS positions']];
-const PERM_LEVELS = [['admin', false], ['manager', false], ['editor', false], ['viewer', true], ['amia_editor', true]];
-async function permLoad(){
-  const box = el('permBox'); if(!box) return;
-  const q = await sb.from('role_permissions').select('*');
-  if(q.error){ box.innerHTML = `<p class="sm" style="color:var(--crit)">${esc(q.error.message)}</p>`; return; }
-  const by = {}; (q.data || []).forEach(r => { by[r.role] = r; });
-  const cell = (role, key, free) => free
-    ? `<label style="display:inline-flex;gap:8px;align-items:center;cursor:pointer"><input type="checkbox" data-perm-role="${role}" data-perm-key="${key}"${by[role] && by[role][key] ? ' checked' : ''} style="width:18px;height:18px"><span class="sm">${by[role] && by[role][key] ? 'Can see' : 'Hidden'}</span></label>`
-    : '<span class="sm">Always</span>';
-  box.innerHTML = `<h3 style="margin:0 0 4px;font-size:17px">What each level can see</h3>
-    <p class="sm" style="margin:0 0 10px">Switch on or off for Guest and AMIA Project Editor. Admin, Manager and Editor always see everything. A change reaches a person when they open the page again.</p>
-    <div class="scroll"><table><thead><tr><th>Level</th>${PERM_COLS.map(c => `<th>${c[1]}</th>`).join('')}</tr></thead><tbody>
-      ${PERM_LEVELS.map(l => `<tr><td class="id"><b>${esc(US_NAMES[l[0]])}</b><div class="sm">${esc(US_HELP[l[0]])}</div></td>${PERM_COLS.map(c => `<td>${cell(l[0], c[0], l[1])}</td>`).join('')}</tr>`).join('')}
-    </tbody></table></div><div id="permMsg" class="sm" style="min-height:18px;margin-top:6px"></div>`;
-}
-document.addEventListener('change', async ev => {
-  const c = ev.target.closest && ev.target.closest('[data-perm-role]'); if(!c) return;
-  const msg = el('permMsg'); c.disabled = true; if(msg){ msg.style.color = ''; msg.textContent = 'Saving…'; }
-  const { error } = await sb.rpc('set_permission', { p_role: c.dataset.permRole, p_key: c.dataset.permKey, p_value: c.checked });
-  c.disabled = false;
-  if(error){ c.checked = !c.checked; if(msg){ msg.style.color = '#b3261e'; msg.textContent = error.message; } return; }
-  const lab = c.parentElement && c.parentElement.querySelector('span'); if(lab) lab.textContent = c.checked ? 'Can see' : 'Hidden';
-  if(msg){ msg.style.color = '#1d6b3f'; msg.textContent = 'Saved.'; }
-});
 function usDialog(u){
   const isNew = !u;
   const opts = Object.keys(US_NAMES).map(k => `<option value="${k}"${(u ? u.role : 'viewer') === k ? ' selected' : ''}>${US_NAMES[k]} — ${US_HELP[k]}</option>`).join('');

@@ -32,12 +32,8 @@ async function start() {
   window.APPDATA = Object.assign({}, X, { F, R: AppData.buildR(F, db, iso), M: AppData.buildM(F, db, iso, window.GEO), PPL: AppData.buildPPL(F), HIRE: AppData.buildHIRE(db, iso), FINES: AppData.buildFINES(db) });   // HIRE, FINES: next steps
   window.APPPEOPLE = db.people; window.APPSITES = db.sites; window.APPPROJECTS = db.projects; window.APPSUPPLIERS = (db.suppliers || []).map(x => ({ id: x.id, name: x.name }));
   try { const u = (await sb.auth.getUser()).data.user; const r = await sb.from('app_users').select('role').eq('id', u.id).maybeSingle(); window.MYROLE = r.data ? r.data.role : ''; } catch (e) { window.MYROLE = ''; }
-  // What my level may see (switches on the Users page). Admin, Manager and Editor always see everything.
-  window.PERM = { fines: true, prices: true, gps: true };
-  if (!['admin', 'manager', 'editor'].includes(window.MYROLE || '')) { try { const q = await sb.from('role_permissions').select('*').eq('role', window.MYROLE).maybeSingle(); const r = q.data;
-      window.PERM = { fines: !!(r && r.see_fines), prices: !!(r && r.see_prices), gps: !!(r && r.see_gps) }; } catch (e) { window.PERM = { fines: false, prices: false, gps: false }; } }
-  window.NOFINES = !window.PERM.fines; window.NOPRICES = !window.PERM.prices;
-  if (window.NOFINES) document.body.classList.add('nofines'); if (window.NOPRICES) document.body.classList.add('noprices');
+  window.NOMONEY = !['admin', 'editor', 'manager'].includes(window.MYROLE || '');   // Guest and AMIA Project Editor: no fines, accidents or hired prices
+  if (window.NOMONEY) document.body.classList.add('nomoney');
   window.APPLOG = [];
   // old plate / asset numbers: search for an old number leads to the vehicle; the Machine details box lists them
   window.APPOLDNUMS = []; window.APPOLDBYVEH = {};
@@ -55,7 +51,7 @@ async function start() {
   window.APPREF = { v: {}, p: {} };   // reference no. of every current paper: v[vehicle id][paper type id], p[person id][paper type id]
   (db.papers || []).forEach((x) => { if (!x.is_current) return; if (x.vehicle_id) (window.APPREF.v[x.vehicle_id] = window.APPREF.v[x.vehicle_id] || {})[x.paper_type_id] = x.ref_no || ''; if (x.person_id) (window.APPREF.p[x.person_id] = window.APPREF.p[x.person_id] || {})[x.paper_type_id] = x.ref_no || ''; });
   window.APPGPS = {};
-  try { const g = await sb.from(window.PERM.gps ? 'gps_positions' : 'gps_odometer').select('*'); if (!g.error) g.data.forEach(r => { window.APPGPS[r.vehicle_id] = r; }); } catch (e) {}
+  try { const g = await sb.from(['admin','editor','manager'].includes(window.MYROLE||'') ? 'gps_positions' : 'gps_odometer').select('*'); if (!g.error) g.data.forEach(r => { window.APPGPS[r.vehicle_id] = r; }); } catch (e) {}
   if (window.MYROLE === 'admin') { try { const r = await sb.from('change_log').select('*').order('id', { ascending: false }).limit(500); if (!r.error) window.APPLOG = r.data; } catch (e) {} }
   const s = document.createElement('script'); s.textContent = document.getElementById('pagejs').textContent;
   document.body.appendChild(s);
