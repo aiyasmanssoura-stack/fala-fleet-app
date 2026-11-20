@@ -268,6 +268,12 @@ h1{margin:0}
   background:rgba(255,255,255,.18)}
 .band .srch kbd{background:rgba(255,255,255,.14);border-color:rgba(255,255,255,.18);
   color:#c3cce8}
+.histbox{padding:8px 14px}
+.histbox>summary{cursor:pointer;list-style:none;display:flex;align-items:center;gap:10px;flex-wrap:wrap;font-size:13px;color:var(--ink2)}
+.histbox>summary::-webkit-details-marker{display:none}
+.histbox>summary::before{content:'\25B8';font-size:11px;color:var(--muted)}
+.histbox[open]>summary::before{content:'\25BE'}
+.histbox table{font-size:12.5px}.histbox .scroll{margin-top:8px}
 .who{position:relative}
 .whoc{width:38px;height:38px;border-radius:50%;border:2px solid rgba(255,255,255,.35);background:#f5c518;color:#14305f;font:700 14px/1 inherit;font-family:inherit;cursor:pointer;display:grid;place-items:center;padding:0}
 .whoc:hover{border-color:#fff}
@@ -2379,21 +2385,21 @@ let drawLeads = ()=>{};
       ${na.length?`<p class="sm" style="margin:11px 0 0">Does not apply:
         ${na.map(d=>esc(d.k)).join(' · ')}.</p>`:''}
     </div>
-    ${paperHistPanel(v)}
     ${tagRows.length?`<div class="panel">
       <div class="ph"><h3>${isKid?'Trailer tags and numbers':'Tags and numbers'}</h3>
         <span class="note">a number on a sticker or a card</span></div>
       <div class="kv" style="border-top:0;padding-top:0;margin-top:0">
-        ${tagRows.map(t=>`<div><div class="lbl">${esc(t.k)}</div>
+        ${(window.numTagRows ? window.numTagRows(v, tagRows) : tagRows).map(t=>`<div><div class="lbl">${esc(t.k)}</div>
           <div class="v mono">${LISTFOR[t.k] && !t.ref
             ? `<a href="#lists/${LISTFOR[t.k]}" style="color:var(--brand);text-decoration:none"
                  title="Open the list">${esc(t.v)}</a>`
             : t.ref
             ? `<a data-f="card" data-plate="${esc(t.ref)}"
                  style="color:var(--brand);cursor:pointer">${esc(t.ref)}</a>`
-            : esc(t.v)}</div>${t.wrote
+            : esc(t.v)}${window.numTagBtn ? window.numTagBtn(v, t) : ''}</div>${t.wrote
             ? `<div class="sm">written as “${esc(t.wrote)}”</div>` : ''}</div>`).join('')}
-      </div></div>`:''}`;
+      </div></div>`:''}
+    ${paperHistPanel(v)}`;
   }
 
 
@@ -3605,10 +3611,9 @@ let drawLeads = ()=>{};
       const e = (window.APPLOG || []).find(x => x.kind === 'paper' && x.details && x.details.old_paper_id === r.id);
       return e ? `<td class="sm"><b>${esc(homeWho(e.by_email))}</b><br><span class="sm">${esc(homeWhen(e.at))}</span></td>` : '<td class="sm"><span class="dash">—</span></td>';
     };
-    return `<div class="panel"><div class="ph"><h3>Earlier expiry dates</h3><span class="pill p-ok">${rows.length} on record</span>
-      <span class="note">dates that were replaced by a renewal</span></div>
+    return `<details class="panel histbox"><summary><b>Earlier expiry dates</b> <span class="pill p-ok">${rows.length} on record</span> <span class="note">for record only · tap to open</span></summary>
       <div class="scroll"><table><thead><tr><th>Paper</th><th class="n">Expired</th><th>Ref</th><th>Note</th>${IS_ADMIN() ? '<th>Renewed by</th>' : ''}${histTh()}</tr></thead>
-      <tbody>${rows.map(r => `<tr><td><b>${esc(r.k)}</b></td><td class="n id"><b>${dt(r.v)}</b></td><td class="sm">${esc(r.ref)}</td><td class="sm">${esc(r.note)}</td>${renewedBy(r)}${histTd('paper', r, v.plate)}</tr>`).join('')}</tbody></table></div></div>`;
+      <tbody>${rows.map(r => `<tr><td><b>${esc(r.k)}</b></td><td class="n id"><b>${dt(r.v)}</b></td><td class="sm">${esc(r.ref)}</td><td class="sm">${esc(r.note)}</td>${renewedBy(r)}${histTd('paper', r, v.plate)}</tr>`).join('')}</tbody></table></div></details>`;
   }
   function findLine(kind, id, plate){
     const v = V[plate]; if(!v) return [];

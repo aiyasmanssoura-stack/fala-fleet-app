@@ -16,10 +16,9 @@
       const e = (window.APPLOG || []).find(x => x.kind === 'paper' && x.details && x.details.old_paper_id === r.id);
       return e ? `<td class="sm"><b>${esc(homeWho(e.by_email))}</b><br><span class="sm">${esc(homeWhen(e.at))}</span></td>` : '<td class="sm"><span class="dash">—</span></td>';
     };
-    return `<div class="panel"><div class="ph"><h3>Earlier expiry dates</h3><span class="pill p-ok">${rows.length} on record</span>
-      <span class="note">dates that were replaced by a renewal</span></div>
+    return `<details class="panel histbox"><summary><b>Earlier expiry dates</b> <span class="pill p-ok">${rows.length} on record</span> <span class="note">for record only · tap to open</span></summary>
       <div class="scroll"><table><thead><tr><th>Paper</th><th class="n">Expired</th><th>Ref</th><th>Note</th>${IS_ADMIN() ? '<th>Renewed by</th>' : ''}${histTh()}</tr></thead>
-      <tbody>${rows.map(r => `<tr><td><b>${esc(r.k)}</b></td><td class="n id"><b>${dt(r.v)}</b></td><td class="sm">${esc(r.ref)}</td><td class="sm">${esc(r.note)}</td>${renewedBy(r)}${histTd('paper', r, v.plate)}</tr>`).join('')}</tbody></table></div></div>`;
+      <tbody>${rows.map(r => `<tr><td><b>${esc(r.k)}</b></td><td class="n id"><b>${dt(r.v)}</b></td><td class="sm">${esc(r.ref)}</td><td class="sm">${esc(r.note)}</td>${renewedBy(r)}${histTd('paper', r, v.plate)}</tr>`).join('')}</tbody></table></div></details>`;
   }
   function findLine(kind, id, plate){
     const v = V[plate]; if(!v) return [];
