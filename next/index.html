@@ -276,7 +276,8 @@ h1{margin:0}
 .mast-meta .whop b{font-size:14px;color:var(--ink);font-weight:700;padding:2px 10px 0}
 .mast-meta .whop span{font-size:12px;color:var(--muted);word-break:break-all;padding:0 10px}
 .mast-meta .whop i{font-style:normal;font-size:12px;font-weight:600;color:var(--accent);padding:2px 10px 8px;border-bottom:1px solid var(--rule);margin-bottom:6px}
-.mast-meta .whop .btn.ghost{display:block;width:100%;margin:0;border:0;background:none;box-shadow:none;font:inherit;font-size:13px;font-weight:600;color:var(--ink2);padding:8px 10px;border-radius:9px;text-align:left;cursor:pointer}
+.mast-meta .whop .btn.ghost svg{width:17px;height:17px;flex:none}
+.mast-meta .whop .btn.ghost{display:flex;align-items:center;gap:10px;width:100%;margin:0;border:0;background:none;box-shadow:none;font:inherit;font-size:13px;font-weight:600;color:var(--ink2);padding:8px 10px;border-radius:9px;text-align:left;cursor:pointer}
 .mast-meta .whop .btn.ghost:hover{background:var(--panel-2);color:var(--ink)}
 .btn.ghost{background:rgba(255,255,255,.12);border-color:rgba(255,255,255,.18);
   color:#e3e9f8}
@@ -1017,7 +1018,7 @@ body.nomoney #tabFines,body.nomoney #pgFines,body.nomoney .mny{display:none!impo
         <div class="qres" id="qres" role="listbox" hidden></div>
       </div>
       <button class="btn ghost" id="themeBtn" type="button">Dark mode</button>
-      <button class="btn ghost" id="signOutBtn" type="button">Sign out</button>
+      <button class="btn ghost" id="signOutBtn" type="button"><svg viewBox="0 0 17 17" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6.5 2.5h-3v12h3M11 5l3.5 3.5L11 12M14.5 8.5h-8"/></svg> Sign out</button>
     </div>
   </div>
 </div>
@@ -5888,17 +5889,20 @@ apply(location.hash.slice(1));
 
 /* ============================ theme ============================ */
 const tb = el('themeBtn');
+const ICON_SUN = '<svg viewBox="0 0 17 17" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="8.5" cy="8.5" r="3"/><path d="M8.5 1.5v1.5M8.5 14v1.5M1.5 8.5H3M14 8.5h1.5M3.5 3.5l1 1M12.5 12.5l1 1M3.5 13.5l1-1M12.5 4.5l1-1"/></svg>', ICON_MOON = '<svg viewBox="0 0 17 17" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 10.2A6 6 0 0 1 6.8 3a6 6 0 1 0 7.2 7.2z"/></svg>';
+function setTb(isDark){ tb.innerHTML = (isDark ? ICON_SUN : ICON_MOON) + (isDark ? 'Light mode' : 'Dark mode'); }
+setTb(document.documentElement.getAttribute('data-theme')==='dark');
 tb.onclick = ()=>{
   const dark = document.documentElement.getAttribute('data-theme')==='dark'
     || (!document.documentElement.getAttribute('data-theme')
         && matchMedia('(prefers-color-scheme: dark)').matches);
   document.documentElement.setAttribute('data-theme', dark?'light':'dark');
   try{ localStorage.setItem('fala.theme', dark?'light':'dark'); }catch(e){}
-  tb.textContent = dark?'Dark mode':'Light mode';
+  setTb(!dark);
   requestAnimationFrame(drawLeads);
 };
 try{ if(localStorage.getItem('fala.theme')==='dark') document.documentElement.setAttribute('data-theme','dark'); }catch(e){}
-if(document.documentElement.getAttribute('data-theme')==='dark') tb.textContent='Light mode';
+setTb(document.documentElement.getAttribute('data-theme')==='dark');
 addEventListener('load', ()=>requestAnimationFrame(drawLeads));
 
 /* ================= OPEN IN A NEW TAB (16 Nov 2026) ============================
