@@ -516,7 +516,7 @@ th.sortable .sa{display:inline-block;width:1em;font-size:10px;opacity:.9}
 /* The figure scales with the tile it sits in, not the window: 'AED 1,001,450'
    ran out of its tile on a narrow card. cqw = the tile's own inner width. */
 #pgHired .tile,#pgFines .tile{container-type:inline-size}
-body.nomoney #tabFines,body.nomoney #pgFines,body.nomoney .mny{display:none!important}
+body.nofines #tabFines,body.nofines #pgFines,body.noprices .mny{display:none!important}
 #pgHired .tile .val,#pgFines .tile .val{white-space:nowrap;font-size:clamp(15px,10.5cqw,27px)}
 
 /* the site tiles */
@@ -2992,7 +2992,7 @@ let drawLeads = ()=>{};
       <div class="ckv">
         ${cell('Type', f.type)}${cell('Make and model', f.make)}${cell('Year', f.year)}
         ${cell('Serial / chassis no.', f.chassis)}${cell('Plate or asset no.', f.number)}${cell('Engine no.', f.engine)}${cell('Registered to', f.owner)}
-        ${hired ? cell('Supplier', f.firm) + cell('LPO no.', f.lpo) + (window.NOMONEY ? '' : cell('Monthly rate', f.rate != null && f.rate !== '' ? 'AED ' + Number(f.rate).toLocaleString('en-GB') : ''))
+        ${hired ? cell('Supplier', f.firm) + cell('LPO no.', f.lpo) + (window.NOPRICES ? '' : cell('Monthly rate', f.rate != null && f.rate !== '' ? 'AED ' + Number(f.rate).toLocaleString('en-GB') : ''))
           + cell('Operator', f.op) + cell('Hire start', mdD(f.start)) + cell('Hire end', mdD(f.end), 'still hired') : ''}
       </div>${mdOld(key)}${mdPending(key)}</div>`;
   }
@@ -3154,7 +3154,7 @@ let drawLeads = ()=>{};
       const r = back[i], d = document.getElementById('hBackDetail');
       d.innerHTML = `<div class="panel" style="margin-top:14px"><div class="ph"><h3>${e(r.plate)} · ${e(r.type)}</h3><span class="pill p-gap">sent back ${day(r.end)}</span></div>
         <div class="sm" style="line-height:1.7">Supplier: <b>${e(r.firm)}</b> · Project: <b>${e(r.proj)}</b>${r.site&&r.site!==r.proj?' ('+e(r.site)+')':''}<br>
-        Hired from: <b>${day(r.start)}</b> · LPO: <b>${r.lpo?e(r.lpo):'—'}</b>${window.NOMONEY?'':` · Rate: <b>${r.rate?nf.format(r.rate)+' / month':'—'}</b>`} · Diesel: <b>${e(r.diesel||'not stated')}</b>${r.drv?' · Operator: <b>'+e(r.drv)+'</b>':''}</div>
+        Hired from: <b>${day(r.start)}</b> · LPO: <b>${r.lpo?e(r.lpo):'—'}</b>${window.NOPRICES?'':` · Rate: <b>${r.rate?nf.format(r.rate)+' / month':'—'}</b>`} · Diesel: <b>${e(r.diesel||'not stated')}</b>${r.drv?' · Operator: <b>'+e(r.drv)+'</b>':''}</div>
         ${adm?`<div style="margin-top:12px"><button type="button" class="btn" id="hBackBring">Bring back to the hired list</button> <span id="hBackErr" class="sm" style="color:#b3261e"></span></div>`:''}</div>${window.mmPanel?window.mmPanel(r.mm):''}`;
       d.scrollIntoView({behavior:'smooth',block:'nearest'});
       const b = document.getElementById('hBackBring');
@@ -3777,7 +3777,7 @@ let drawLeads = ()=>{};
     const kpi = (l,n,cls) => `<div class="ckpi"><div class="lbl">${l}</div><b class="${cls||''}">${n}</b></div>`;
     const strip = `<div class="panel ckpis">${kpi('Papers', ex.length ? ex.length + ' expired' : so.length ? so.length + ' due soon' : 'all valid', ex.length ? 'bad' : so.length ? 'warn' : '')}
       ${kpi('Service', nSv + ' job' + (nSv===1?'':'s'))}${kpi('Diesel', dzM === null ? '—' : NUM.format(Math.round(dzM)) + ' L')}
-      ${window.NOMONEY?'':kpi('Fines', tick + acc ? (tick + acc) + ' on record' : 'none')}${kpi('Tyres', nTy || '—')}</div>`;
+      ${window.NOFINES?'':kpi('Fines', tick + acc ? (tick + acc) + ' on record' : 'none')}${kpi('Tyres', nTy || '—')}</div>`;
 
     const statusPill = d => { const s = state(d), l = d.st==='date' ? until(d.v) : null;
       if(s==='ex') return `<span class="pill p-crit">Expired ${-l} day${-l===1?'':'s'}</span>`;
@@ -3833,7 +3833,7 @@ let drawLeads = ()=>{};
       {k:'ty', t:'Tyres', n:nTy, h:tyrePanel(v, false)},
       {k:'sv', t:'Service and maintenance', n:nSv, h:servicePanel(v)},
       {k:'di', t:'Diesel', h:dieselPanel(v) || none},
-      ...(window.NOMONEY ? [] : [{k:'fi', t:'Fines', n:tick + acc, h:finesPanel(v) + accidentPanel(v)}]),
+      ...(window.NOFINES ? [] : [{k:'fi', t:'Fines', n:tick + acc, h:finesPanel(v) + accidentPanel(v)}]),
       {k:'hi', t:'History', h:(driverLogPanel(v) + sitesPanel(v)) || none}
     ];
     const cur = (window.__cardTab && tabs.some(t=>t.k===window.__cardTab.k && window.__cardTab.p===v.plate)) ? window.__cardTab.k : 'ov';
@@ -4608,7 +4608,7 @@ let drawLeads = ()=>{};
     const t = HR.tally;
     el('hTiles').innerHTML = [
       ['Hired in', t.n, 'machines on hire'],
-      ...(window.NOMONEY ? [] : [['Monthly rent', money(t.rate), `${t.rated} of ${t.n} have a rate`]]),
+      ...(window.NOPRICES ? [] : [['Monthly rent', money(t.rate), `${t.rated} of ${t.n} have a rate`]]),
       ['Suppliers', t.firms, `across ${t.projects} projects`],
       ['With a driver', t.withDriver, 'the rest we operate'],
       ['Service on us', t.svcOnUs, 'the JCBs — all else included'],
@@ -4635,7 +4635,7 @@ let drawLeads = ()=>{};
           <span class="fnum">${f.n}<span class="sm"> machine${f.n>1?'s':''}</span></span></span>
         <span class="fkinds">${kinds}</span>
         <span class="fmeta">${esc(f.projects.join(' · '))}</span>
-        <span class="gf">${cond}${window.NOMONEY?'':f.rate?`<span class="pill p-hire">${money(f.rate)} / month${
+        <span class="gf">${cond}${window.NOPRICES?'':f.rate?`<span class="pill p-hire">${money(f.rate)} / month${
           f.rated<f.n?` <span class="sm">(${f.rated} of ${f.n} priced)</span>`:''}</span>`
           :'<span class="pill p-gap">no rate recorded</span>'}</span>
         ${f.lpos.length?`<span class="fmeta">LPO ${f.lpos.map(esc).join(' · ')}</span>`:''}
@@ -4670,7 +4670,7 @@ let drawLeads = ()=>{};
       <button class="ptile" type="button" data-h="proj" data-proj="${esc(p.proj)}"${p.status==='archived'?' style="opacity:.7;border-style:dashed"':''}>
         <div class="pn">${esc(p.proj)}${p.status==='archived'?' <span class="pill p-crit">Archived</span>':''}</div>
         <div class="pv">${p.n}</div>
-        ${window.NOMONEY?'':`<div class="pr">${p.rate ? money(p.rate)+' / month' : 'rate not recorded'}</div>`}
+        ${window.NOPRICES?'':`<div class="pr">${p.rate ? money(p.rate)+' / month' : 'rate not recorded'}</div>`}
         <div class="pj"><span>at ${esc(p.site)} · ${p.firms} supplier${p.firms>1?'s':''}</span></div>
       </button>`).join('');
 
@@ -4697,7 +4697,7 @@ let drawLeads = ()=>{};
           <span class="types">${chips}</span>
         </span>
         <span class="catfoot">
-          ${window.NOMONEY?'':g.rate?`<span class="pill p-hire">${money(g.rate)} / month</span>`
+          ${window.NOPRICES?'':g.rate?`<span class="pill p-hire">${money(g.rate)} / month</span>`
                   :'<span class="pill p-gap">no rate recorded</span>'}
           ${g.dieselOurs === g.n ? '<span class="pill p-task">diesel on us</span>'
             : g.dieselOurs ? `<span class="pill p-task">${g.dieselOurs} of ${g.n} diesel on us</span>`
@@ -4857,7 +4857,7 @@ let drawLeads = ()=>{};
           ${esc(m.plate)}</span>
         <span class="vmeta">${esc(m.type)} · ${esc(midOf(m))}</span>
         <span class="vmeta">${m.drv&&m.drv.toUpperCase()!=='NA'?esc(m.drv):'<span class="dash">no driver named</span>'}</span>
-        <span class="vfoot">${window.NOMONEY?'':m.rate?`<span class="pill p-hire">${money(m.rate)}</span>`:'<span class="pill p-gap">no rate</span>'}
+        <span class="vfoot">${window.NOPRICES?'':m.rate?`<span class="pill p-hire">${money(m.rate)}</span>`:'<span class="pill p-gap">no rate</span>'}
           ${terms(m)}</span>
       </span></button>`;
 
@@ -4878,7 +4878,7 @@ let drawLeads = ()=>{};
     el('hList').innerHTML = `
       <div class="hcrumb"><a data-h="home">Hired In</a><span>›</span><b>${esc(key)}</b></div>
       <h2>${esc(key)} <span class="sm">— ${mine.length} machine${mine.length>1?'s':''}</span></h2>
-      <p class="cap">${window.NOMONEY?'':(rate?money(rate)+' a month':'No rate recorded')+' · '}${sub}</p>
+      <p class="cap">${window.NOPRICES?'':(rate?money(rate)+' a month':'No rate recorded')+' · '}${sub}</p>
       <div class="listbar"><span class="sm" style="flex:1"></span>
         <div class="viewsw" role="group" aria-label="How to show this list">
           <button type="button" id="hvGrid" aria-pressed="true">Grid</button>
@@ -5195,7 +5195,7 @@ let drawLeads = ()=>{};
             </tbody></table></div></div>`;}).join('');
         return `<h2 class="lpart">By month <span>${keys.length}</span></h2>${sum}<h2 class="lpart">Month by month</h2>${det}`;
       } };
-  if(window.NOMONEY) delete LISTS.finemonths;
+  if(window.NOFINES) delete LISTS.finemonths;
   const ORDER = ['diesel','gps','tahseel','fnrc','fujairah','service','finemonths'].filter(k=>LISTS[k]);
   const count = k => LISTS[k].count ? LISTS[k].count() : LISTS[k].secs().reduce((n,g)=>n+g.vs.length,0);
 
@@ -5559,9 +5559,9 @@ function renderSettings(){
       ${prs.filter(p => p.status !== 'archived').map(prow).join('')}${prs.filter(p => p.status === 'archived').map(prow).join('')}</tbody></table></div>`;
     el('plAddProj').onclick = () => plProjectDialog(null);
   }else if(view === 'users'){
-    root.innerHTML = head('Users', '<button type="button" class="btn" id="usAdd" style="background:var(--navy,#16315c);color:#fff">+ Add user</button>') + `<div class="scroll" id="usBox"><p class="sm">Loading…</p></div>`;
+    root.innerHTML = head('Users', '<button type="button" class="btn" id="usAdd" style="background:var(--navy,#16315c);color:#fff">+ Add user</button>') + `<div class="scroll" id="usBox"><p class="sm">Loading…</p></div><div id="permBox" style="margin-top:28px"></div>`;
     el('usAdd').onclick = () => usDialog(null);
-    usLoad();
+    usLoad(); permLoad();
   }else{
     root.innerHTML = `<h2 style="margin:0 0 14px">Settings</h2><div style="display:grid;gap:8px;max-width:760px">${CARDS.map(c =>
       `<a href="#settings/${c[0]}" class="setcard" style="display:flex;align-items:center;gap:14px;padding:14px 16px;border:1px solid var(--line,#d9d6cc);border-radius:10px;background:var(--card,#fff);color:inherit;text-decoration:none">${ICON[c[0]]}<span style="flex:1"><b style="display:block;font-size:15px">${c[1]}</b><span class="sm">${c[2]}</span></span><span class="sm" style="font-size:18px">&rsaquo;</span></a>`).join('')}</div>
@@ -5589,6 +5589,33 @@ async function usLoad(){
   box.innerHTML = `<table><thead><tr><th>Email</th><th>Level</th><th>Status</th></tr></thead><tbody>${US_ROWS.map(u =>
     `<tr class="rowlink" data-pl-user="${esc(u.id)}" style="cursor:pointer${u.off ? ';opacity:.6' : ''}"><td class="id"><b>${esc(u.email)}</b>${u.me ? ' <span class="sm">(you)</span>' : ''}</td><td>${esc(US_NAMES[u.role] || u.role)}</td><td>${u.off ? '<span class="pill p-crit">Switched off</span>' : 'Active'}</td></tr>`).join('')}</tbody></table>`;
 }
+
+/* ---- What each level can see (Admin): fines and accidents, hired prices, GPS. Guest and AMIA Project Editor have switches; Admin, Manager and Editor always see everything. ---- */
+const PERM_COLS = [['see_fines', 'Fines and accidents'], ['see_prices', 'Hired prices'], ['see_gps', 'GPS positions']];
+const PERM_LEVELS = [['admin', false], ['manager', false], ['editor', false], ['viewer', true], ['amia_editor', true]];
+async function permLoad(){
+  const box = el('permBox'); if(!box) return;
+  const q = await sb.from('role_permissions').select('*');
+  if(q.error){ box.innerHTML = `<p class="sm" style="color:var(--crit)">${esc(q.error.message)}</p>`; return; }
+  const by = {}; (q.data || []).forEach(r => { by[r.role] = r; });
+  const cell = (role, key, free) => free
+    ? `<label style="display:inline-flex;gap:8px;align-items:center;cursor:pointer"><input type="checkbox" data-perm-role="${role}" data-perm-key="${key}"${by[role] && by[role][key] ? ' checked' : ''} style="width:18px;height:18px"><span class="sm">${by[role] && by[role][key] ? 'Can see' : 'Hidden'}</span></label>`
+    : '<span class="sm">Always</span>';
+  box.innerHTML = `<h3 style="margin:0 0 4px;font-size:17px">What each level can see</h3>
+    <p class="sm" style="margin:0 0 10px">Switch on or off for Guest and AMIA Project Editor. Admin, Manager and Editor always see everything. A change reaches a person when they open the page again.</p>
+    <div class="scroll"><table><thead><tr><th>Level</th>${PERM_COLS.map(c => `<th>${c[1]}</th>`).join('')}</tr></thead><tbody>
+      ${PERM_LEVELS.map(l => `<tr><td class="id"><b>${esc(US_NAMES[l[0]])}</b><div class="sm">${esc(US_HELP[l[0]])}</div></td>${PERM_COLS.map(c => `<td>${cell(l[0], c[0], l[1])}</td>`).join('')}</tr>`).join('')}
+    </tbody></table></div><div id="permMsg" class="sm" style="min-height:18px;margin-top:6px"></div>`;
+}
+document.addEventListener('change', async ev => {
+  const c = ev.target.closest && ev.target.closest('[data-perm-role]'); if(!c) return;
+  const msg = el('permMsg'); c.disabled = true; if(msg){ msg.style.color = ''; msg.textContent = 'Saving…'; }
+  const { error } = await sb.rpc('set_permission', { p_role: c.dataset.permRole, p_key: c.dataset.permKey, p_value: c.checked });
+  c.disabled = false;
+  if(error){ c.checked = !c.checked; if(msg){ msg.style.color = '#b3261e'; msg.textContent = error.message; } return; }
+  const lab = c.parentElement && c.parentElement.querySelector('span'); if(lab) lab.textContent = c.checked ? 'Can see' : 'Hidden';
+  if(msg){ msg.style.color = '#1d6b3f'; msg.textContent = 'Saved.'; }
+});
 function usDialog(u){
   const isNew = !u;
   const opts = Object.keys(US_NAMES).map(k => `<option value="${k}"${(u ? u.role : 'viewer') === k ? ' selected' : ''}>${US_NAMES[k]} — ${US_HELP[k]}</option>`).join('');
@@ -5714,7 +5741,7 @@ const PAGES = {fleet:['tabFleet','pgFleet'], renewals:['tabRenew','pgRenew'],
    Without this the tab router and the fleet router both wrote the hash and
    overwrote each other on every click. */
 function show(name, push){
-  if(!PAGES[name] || (window.NOMONEY && name === 'fines')) name = 'fleet';
+  if(!PAGES[name] || (window.NOFINES && name === 'fines')) name = 'fleet';
   for(const [k,[t,p]] of Object.entries(PAGES)){
     const on = k===name;
     el(t).setAttribute('aria-selected', on);
@@ -5987,8 +6014,12 @@ async function start() {
   window.APPDATA = Object.assign({}, X, { F, R: AppData.buildR(F, db, iso), M: AppData.buildM(F, db, iso, window.GEO), PPL: AppData.buildPPL(F), HIRE: AppData.buildHIRE(db, iso), FINES: AppData.buildFINES(db) });   // HIRE, FINES: next steps
   window.APPPEOPLE = db.people; window.APPSITES = db.sites; window.APPPROJECTS = db.projects; window.APPSUPPLIERS = (db.suppliers || []).map(x => ({ id: x.id, name: x.name }));
   try { const u = (await sb.auth.getUser()).data.user; const r = await sb.from('app_users').select('role').eq('id', u.id).maybeSingle(); window.MYROLE = r.data ? r.data.role : ''; } catch (e) { window.MYROLE = ''; }
-  window.NOMONEY = !['admin', 'editor', 'manager'].includes(window.MYROLE || '');   // Guest and AMIA Project Editor: no fines, accidents or hired prices
-  if (window.NOMONEY) document.body.classList.add('nomoney');
+  // What my level may see (switches on the Users page). Admin, Manager and Editor always see everything.
+  window.PERM = { fines: true, prices: true, gps: true };
+  if (!['admin', 'manager', 'editor'].includes(window.MYROLE || '')) { try { const q = await sb.from('role_permissions').select('*').eq('role', window.MYROLE).maybeSingle(); const r = q.data;
+      window.PERM = { fines: !!(r && r.see_fines), prices: !!(r && r.see_prices), gps: !!(r && r.see_gps) }; } catch (e) { window.PERM = { fines: false, prices: false, gps: false }; } }
+  window.NOFINES = !window.PERM.fines; window.NOPRICES = !window.PERM.prices;
+  if (window.NOFINES) document.body.classList.add('nofines'); if (window.NOPRICES) document.body.classList.add('noprices');
   window.APPLOG = [];
   // old plate / asset numbers: search for an old number leads to the vehicle; the Machine details box lists them
   window.APPOLDNUMS = []; window.APPOLDBYVEH = {};
@@ -6006,7 +6037,7 @@ async function start() {
   window.APPREF = { v: {}, p: {} };   // reference no. of every current paper: v[vehicle id][paper type id], p[person id][paper type id]
   (db.papers || []).forEach((x) => { if (!x.is_current) return; if (x.vehicle_id) (window.APPREF.v[x.vehicle_id] = window.APPREF.v[x.vehicle_id] || {})[x.paper_type_id] = x.ref_no || ''; if (x.person_id) (window.APPREF.p[x.person_id] = window.APPREF.p[x.person_id] || {})[x.paper_type_id] = x.ref_no || ''; });
   window.APPGPS = {};
-  try { const g = await sb.from(['admin','editor','manager'].includes(window.MYROLE||'') ? 'gps_positions' : 'gps_odometer').select('*'); if (!g.error) g.data.forEach(r => { window.APPGPS[r.vehicle_id] = r; }); } catch (e) {}
+  try { const g = await sb.from(window.PERM.gps ? 'gps_positions' : 'gps_odometer').select('*'); if (!g.error) g.data.forEach(r => { window.APPGPS[r.vehicle_id] = r; }); } catch (e) {}
   if (window.MYROLE === 'admin') { try { const r = await sb.from('change_log').select('*').order('id', { ascending: false }).limit(500); if (!r.error) window.APPLOG = r.data; } catch (e) {} }
   const s = document.createElement('script'); s.textContent = document.getElementById('pagejs').textContent;
   document.body.appendChild(s);

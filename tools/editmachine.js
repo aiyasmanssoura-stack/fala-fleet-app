@@ -13,7 +13,7 @@
       <div class="ckv">
         ${cell('Type', f.type)}${cell('Make and model', f.make)}${cell('Year', f.year)}
         ${cell('Serial / chassis no.', f.chassis)}${cell('Plate or asset no.', f.number)}${cell('Engine no.', f.engine)}${cell('Registered to', f.owner)}
-        ${hired ? cell('Supplier', f.firm) + cell('LPO no.', f.lpo) + (window.NOMONEY ? '' : cell('Monthly rate', f.rate != null && f.rate !== '' ? 'AED ' + Number(f.rate).toLocaleString('en-GB') : ''))
+        ${hired ? cell('Supplier', f.firm) + cell('LPO no.', f.lpo) + (window.NOPRICES ? '' : cell('Monthly rate', f.rate != null && f.rate !== '' ? 'AED ' + Number(f.rate).toLocaleString('en-GB') : ''))
           + cell('Operator', f.op) + cell('Hire start', mdD(f.start)) + cell('Hire end', mdD(f.end), 'still hired') : ''}
       </div>${mdOld(key)}${mdPending(key)}</div>`;
   }
