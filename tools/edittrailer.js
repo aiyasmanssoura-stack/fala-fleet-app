@@ -24,7 +24,7 @@
       <div id="trWarn" class="sm" style="display:none;background:#fff4e0;border:1px solid #f0d49a;border-radius:10px;padding:11px 13px"></div>
       <div style="display:flex;gap:12px;flex-wrap:wrap">
         <div style="flex:1;min-width:150px"><label for="trS" style="${lab}">Starts on</label><input id="trS" type="date" value="${today}" style="${fld}"></div>
-        ${kidsNow.length ? `<div style="flex:1;min-width:150px"><label for="trE" style="${lab}">Old trailer's last day</label><input id="trE" type="date" value="${ISO_BEFORE(today)}" style="${fld}"></div>` : ''}
+        ${kidsNow.length ? `<div style="flex:1;min-width:150px"><label for="trE" style="${lab}">Old trailer's last day</label><input id="trE" type="date" value="${today}" style="${fld}"></div>` : ''}
       </div>
       <div><label for="trN" style="${lab}">Note <span class="sm" style="font-weight:400">(optional, kept with this change)</span></label><input id="trN" type="text" style="${fld}"></div>
       <div id="chgErr" role="alert" style="color:#b3261e;font-size:13px;min-height:18px"></div>
@@ -33,28 +33,35 @@
     document.body.appendChild(el2);
     const $ = id => document.getElementById(id), close = () => el2.remove();
     el2.addEventListener('click', e => { if(e.target === el2) close(); }); $('chgX').onclick = close;
-    const sEl = $('trS'), eEl = $('trE'), pEl = $('trP');
-    sEl.addEventListener('change', () => { if(eEl && sEl.value) eEl.value = ISO_BEFORE(sEl.value); });
+    const sEl = $('trS'), eEl = $('trE'), pEl = $('trP'); let confirmed = false;
+    sEl.addEventListener('change', () => { if(eEl && sEl.value) eEl.value = sEl.value; });
+    sEl.addEventListener('change', () => { confirmed = false; $('chgOk').textContent = 'Save change'; });
     pEl.addEventListener('change', () => { const t = [...trailers].find(x => String(x._id) === pEl.value), w = $('trWarn');
-      if(t && t.trailer){ w.style.display = ''; w.innerHTML = `<b>${esc(t.plate)}</b> is behind <b>${esc(t.trailer)}</b> now. It will move here, and <b>${esc(t.trailer)}</b> will have no trailer from the day before the start date.`; }
+      confirmed = false; $('chgOk').textContent = 'Save change';
+      if(t && t.trailer){ w.style.display = ''; w.innerHTML = `<b>${esc(t.plate)}</b> is behind <b>${esc(t.trailer)}</b> now. You will be asked to confirm before it moves here.`; }
       else w.style.display = 'none'; });
     pEl.focus();
     $('chgOk').onclick = async () => {
       const err = $('chgErr'), btn = $('chgOk'), pv = pEl.value;
       if(!pv){ err.textContent = 'Choose the new trailer.'; return; }
       if(!sEl.value){ err.textContent = 'Choose the start date.'; return; }
+      const tSel = pv !== 'none' ? trailers.find(x => String(x._id) === pv) : null;
+      if(tSel && tSel.trailer && !confirmed){
+        const w = $('trWarn'); w.style.display = ''; w.style.background = '#ffe9d6';
+        w.innerHTML = `<b>Please confirm.</b> <b>${esc(tSel.plate)}</b> is behind <b>${esc(tSel.trailer)}</b> now. If you confirm, it leaves <b>${esc(tSel.trailer)}</b> on <b>${esc(fmt.format(parse(sEl.value)))}</b> (its last day there) and is attached to <b>${esc(v.plate)}</b> from the same day.`;
+        confirmed = true; btn.textContent = 'Yes, move it'; return; }
       btn.disabled = true; btn.textContent = 'Saving…'; err.textContent = '';
       const note = $('trN').value.trim(), endV = eEl && eEl.value ? eEl.value : null, startV = sEl.value;
       const { data, error } = await sb.rpc('change_trailer', { p_truck: v._id, p_trailer: pv === 'none' ? null : +pv, p_start: startV, p_end: endV, p_note: note || null });
-      if(error){ err.textContent = error.message; btn.disabled = false; btn.textContent = 'Save change'; return; }
+      if(error){ err.textContent = error.message; btn.disabled = false; confirmed = false; btn.textContent = 'Save change'; return; }
       // bring the cards up to date without reloading everything
-      const endUsed = endV || ISO_BEFORE(startV);
+      const endUsed = endV || startV;
       kidsNow.forEach(k => { const rec = { f: k.psince || null, t: endUsed, note };
         v.coupLog.unshift(Object.assign({ w: k.plate }, rec)); k.coupLog.unshift(Object.assign({ w: v.plate }, rec)); k.trailer = ''; k.psince = null; });
       v.kids = [];
       if(pv !== 'none'){
         const n = Object.values(V).find(x => String(x._id) === pv);
-        if(n){ if(n.trailer && V[n.trailer]){ const u = V[n.trailer], rec = { f: n.psince || null, t: ISO_BEFORE(startV), note: 'Moved to ' + v.plate };
+        if(n){ if(n.trailer && V[n.trailer]){ const u = V[n.trailer], rec = { f: n.psince || null, t: startV, note: 'Moved to ' + v.plate };
             u.kids = (u.kids || []).filter(k => k !== n.plate); u.coupLog.unshift(Object.assign({ w: n.plate }, rec)); n.coupLog.unshift(Object.assign({ w: u.plate }, rec)); }
           n.trailer = v.plate; n.psince = startV; v.kids = [n.plate]; }
       }
