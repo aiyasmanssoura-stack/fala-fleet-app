@@ -696,13 +696,16 @@ async function make(ctx) {
   const imgs = { cls: {}, logo: null };
   CLASSES.concat(Object.keys(IMG_FOR_CLASS)).forEach(cl => { if (!imgs.cls[cl] && IMG_FOR_CLASS[cl]) imgs.cls[cl] = pngInfo((ctx.drawings || {})[IMG_FOR_CLASS[cl]]); });
   const lg = (ctx.logos || []).find(l => l.name === 'FALA logo'); imgs.logo = lg ? pngInfo(lg.uri) : null;
-  sheetHome(book, D, ctx, imgs); sheetFleet(book, D, ctx, imgs); sheetRenewals(book, D, ctx); sheetPeople(book, D, ctx); sheetSites(book, D, ctx); sheetFines(book, D, ctx); sheetTyres(book, D, ctx);
-  sheetService(book, D, ctx); sheetDiesel(book, D, ctx); sheetHire(book, D, ctx); sheetLog(book, D, ctx);
-  const raws = rawTables(ctx);
-  textSheet(book, 'AI README', ['Topic', 'What it says'], TEXT.readme(D, ctx, raws), [26, 150], true);
-  textSheet(book, 'AI Data dictionary', ['Table', 'Column', 'Type', 'Rows filled', 'Distinct values', 'Points to', 'Meaning', 'Example / allowed values'], dictRows(raws, D), [26, 24, 18, 12, 14, 20, 70, 70], true);
-  textSheet(book, 'AI Rules', ['Topic', 'Rule'], TEXT.rules(D, ctx), [26, 150], true);
-  textSheet(book, 'AI Screens', ['Screen', 'What it shows', 'Built from', 'Layout and look'], TEXT.screens(D, ctx), [30, 90, 45, 70], true);
+  const pk = ctx.pick || null, on = k => !pk || pk.includes(k);      // pick = list of parts chosen on the download screen; none = everything
+  sheetHome(book, D, ctx, imgs);                                       // the cover tab is always included
+  if (on('fleet')) sheetFleet(book, D, ctx, imgs); if (on('renewals')) sheetRenewals(book, D, ctx); if (on('people')) sheetPeople(book, D, ctx); if (on('sites')) sheetSites(book, D, ctx);
+  if (on('fines')) sheetFines(book, D, ctx); if (on('tyres')) sheetTyres(book, D, ctx); if (on('service')) sheetService(book, D, ctx); if (on('diesel')) sheetDiesel(book, D, ctx);
+  if (on('hire')) sheetHire(book, D, ctx); if (on('log')) sheetLog(book, D, ctx);
+  const raws = on('raw') ? rawTables(ctx) : [];
+  if (on('raw')) textSheet(book, 'AI README', ['Topic', 'What it says'], TEXT.readme(D, ctx, raws), [26, 150], true);
+  if (on('raw')) textSheet(book, 'AI Data dictionary', ['Table', 'Column', 'Type', 'Rows filled', 'Distinct values', 'Points to', 'Meaning', 'Example / allowed values'], dictRows(raws, D), [26, 24, 18, 12, 14, 20, 70, 70], true);
+  if (on('raw')) textSheet(book, 'AI Rules', ['Topic', 'Rule'], TEXT.rules(D, ctx), [26, 150], true);
+  if (on('raw')) textSheet(book, 'AI Screens', ['Screen', 'What it shows', 'Built from', 'Layout and look'], TEXT.screens(D, ctx), [30, 90, 45, 70], true);
   const code = (ctx.source || '').split('\n').map(l => [l]);
   const pseudo = ['PSEUDO-CODE of the shown tabs (the exact code follows below, one line per row):', '  read every table; keep papers with is_current = true; today = Asia/Dubai date',
     '  Home: cards = count(Own & In fleet), count(renewals), count(fines with ticket_no), count(change_log)',
@@ -710,8 +713,8 @@ async function make(ctx) {
     '  Renewals: current vehicle papers (Own, not Out of fleet, state Date) with expiry - today <= warn_days, sorted by expiry; Expired if < 0',
     '  People / Sites & Projects / Fines / Tyres / Service / Diesel / Hire / Log: one table each as listed in AI Screens',
     '  hidden: AI tabs (text), raw_<table> for every table (original columns and values)', ''].map(l => [l]);
-  textSheet(book, 'AI Build script', ['Line'], pseudo.concat(code.length ? code : [['(source not available in this run)']]), [200], true, true);
-  textSheet(book, 'Notes for Claude', ['Topic', 'Note'], TEXT.notes(D, ctx), [26, 150], true);
+  if (on('raw')) textSheet(book, 'AI Build script', ['Line'], pseudo.concat(code.length ? code : [['(source not available in this run)']]), [200], true, true);
+  if (on('raw')) textSheet(book, 'Notes for Claude', ['Topic', 'Note'], TEXT.notes(D, ctx), [26, 150], true);
   raws.forEach(t => {
     const sh = book.sheet('raw_' + t.name, { state: 'hidden' });
     if (!t.cols.length) { sh.set(0, 0, '(no columns)', null); return; }

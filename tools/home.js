@@ -105,7 +105,7 @@ async function xlPicture(url){
   const resp = await fetch(url); if(!resp.ok) throw new Error('HTTP ' + resp.status); const blob = await resp.blob();
   return await new Promise((ok, no) => { const r = new FileReader(); r.onload = () => ok(r.result); r.onerror = no; r.readAsDataURL(blob); });
 }
-async function homeExcelRun(){
+async function homeExcelRun(pick){
   const XL = window.FalaXlsx, tables = {}, errors = {}, bad = [];
   for(const [t, ord] of XL.TABLE_ORDER){
     const b = el('homeXl'); if(b) b.textContent = 'Preparing ' + t + '…';
@@ -125,16 +125,39 @@ async function homeExcelRun(){
   }
   let source = ''; try{ source = await (await fetch('xlexport.js')).text(); }catch(e){}
   const now = new Date(), today = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Dubai' }).format(now);
-  const bytes = await XL.make({ tables, errors, drawings: window.ICONS_DATA || {}, logos, today, madeAt: now, madeBy: window.MYEMAIL || 'admin', source });
+  const bytes = await XL.make({ pick, tables, errors, drawings: window.ICONS_DATA || {}, logos, today, madeAt: now, madeBy: window.MYEMAIL || 'admin', source });
   const p = n => String(n).padStart(2, '0');
   const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([bytes], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }));
-  a.download = `Fala Fleet FULL ${now.getFullYear()}-${p(now.getMonth()+1)}-${p(now.getDate())}.xlsx`;
+  a.download = `Fala Fleet ${pick && pick.length < XL_PARTS.length ? 'SELECTED' : 'FULL'} ${now.getFullYear()}-${p(now.getMonth()+1)}-${p(now.getDate())}.xlsx`;
   document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 4000);
 }
+const XL_PARTS = [['fleet','Fleet (every vehicle, by class)'],['renewals','Renewals'],['people','People and drivers'],['sites','Sites and projects'],['hire','Hired in'],
+  ['fines','Fines and accidents'],['tyres','Tyres'],['service','Service'],['diesel','Diesel'],['log','Change log'],['raw','Full raw data and notes for AI tools (hidden tabs, for backup)']];
 function homeExcel(){
+  if(document.getElementById('xlDlg')) return;
+  const d = document.createElement('div'); d.id = 'xlDlg';
+  d.style.cssText = 'position:fixed;inset:0;background:rgba(20,30,50,.45);z-index:1000;display:flex;align-items:center;justify-content:center;padding:16px;overflow:auto';
+  d.innerHTML = `<div role="dialog" aria-modal="true" style="width:min(460px,100%);background:var(--surface,#fff);color:var(--ink,inherit);border-radius:16px;border:1px solid var(--rule,#d9d6cc);padding:22px 24px;box-sizing:border-box">
+    <h2 style="margin:0 0 4px;font-size:20px">Download Excel</h2><div class="sm" style="margin-bottom:12px">Choose what goes in the file.</div>
+    <div style="display:flex;gap:8px;margin-bottom:8px"><button type="button" class="btn" id="xlAll">Select all</button><button type="button" class="btn" id="xlNone">Clear</button></div>
+    <div id="xlList" style="display:flex;flex-direction:column;gap:2px">${XL_PARTS.map(p => `<label style="display:flex;gap:10px;align-items:flex-start;padding:7px 4px;cursor:pointer"><input type="checkbox" data-xl="${p[0]}" checked style="margin-top:3px"><span>${p[1]}</span></label>`).join('')}</div>
+    <div class="sm" style="margin-top:8px">The first tab (Home) is always included. For a complete backup tick everything.</div>
+    <div id="xlErr" role="alert" style="color:#b3261e;font-size:13px;min-height:18px;margin-top:6px"></div>
+    <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:8px"><button type="button" class="btn" id="xlX">Cancel</button><button type="button" class="btn" id="xlGo" style="background:var(--navy,#16315c);color:#fff">Download</button></div></div>`;
+  document.body.appendChild(d);
+  const q = id => document.getElementById(id), boxes = () => [...d.querySelectorAll('[data-xl]')];
+  d.addEventListener('click', e => { if(e.target === d) d.remove(); }); q('xlX').onclick = () => d.remove();
+  q('xlAll').onclick = () => boxes().forEach(b => b.checked = true); q('xlNone').onclick = () => boxes().forEach(b => b.checked = false);
+  q('xlGo').onclick = () => {
+    const pick = boxes().filter(b => b.checked).map(b => b.dataset.xl);
+    if(!pick.length){ q('xlErr').textContent = 'Tick at least one part.'; return; }
+    d.remove(); homeExcelStart(pick);
+  };
+}
+function homeExcelStart(pick){
   const b = el('homeXl'); b.disabled = true; b.textContent = 'Preparing…';
   const done = () => { b.disabled = false; b.textContent = 'Download Excel'; };
-  const go2 = () => { homeExcelRun().then(done).catch(e => { alert('Could not make the Excel file: ' + e.message); done(); }); };
+  const go2 = () => { homeExcelRun(pick).then(done).catch(e => { alert('Could not make the Excel file: ' + e.message); done(); }); };
   if(window.FalaXlsx) return go2();
   const s = document.createElement('script'); s.src = 'xlexport.js'; s.onload = go2;
   s.onerror = () => { done(); alert('Could not load the Excel maker.'); };
