@@ -39,9 +39,9 @@ async function start() {
     const w = document.createElement('div'); w.id = 'whoBtn'; w.className = 'who';
     w.innerHTML = '<button type="button" class="whoc" aria-haspopup="true" aria-label="Signed in as ' + em + '">' + ini + '</button><div class="whop" hidden><b></b><span></span><i></i></div>';
     w.querySelector('b').textContent = nm; w.querySelector('span').textContent = em; w.querySelector('i').textContent = RN[window.MYROLE] || 'No access level';
-    const tbn = document.getElementById('themeBtn'); if (tbn) tbn.parentNode.insertBefore(w, tbn);
+    const tbn = document.getElementById('themeBtn'); if (tbn) tbn.parentNode.insertBefore(w, tbn); const pp = w.querySelector('.whop'); ['themeBtn', 'signOutBtn'].forEach(id => { const b = document.getElementById(id); if (b) pp.appendChild(b); });
     w.querySelector('.whoc').onclick = ev => { ev.stopPropagation(); const p = w.querySelector('.whop'); p.hidden = !p.hidden; };
-    document.addEventListener('click', () => { const p = w.querySelector('.whop'); if (p) p.hidden = true; });
+    document.addEventListener('click', ev => { const p = w.querySelector('.whop'); if (p && !p.contains(ev.target)) p.hidden = true; });
   } catch (e) {}
   window.NOMONEY = !['admin', 'editor', 'manager'].includes(window.MYROLE || '');   // Guest and AMIA Project Editor: no fines, accidents or hired prices
   if (window.NOMONEY) document.body.classList.add('nomoney');
