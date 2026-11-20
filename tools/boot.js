@@ -32,6 +32,17 @@ async function start() {
   window.APPDATA = Object.assign({}, X, { F, R: AppData.buildR(F, db, iso), M: AppData.buildM(F, db, iso, window.GEO), PPL: AppData.buildPPL(F), HIRE: AppData.buildHIRE(db, iso), FINES: AppData.buildFINES(db) });   // HIRE, FINES: next steps
   window.APPPEOPLE = db.people; window.APPSITES = db.sites; window.APPPROJECTS = db.projects; window.APPSUPPLIERS = (db.suppliers || []).map(x => ({ id: x.id, name: x.name }));
   try { const u = (await sb.auth.getUser()).data.user; const r = await sb.from('app_users').select('role').eq('id', u.id).maybeSingle(); window.MYROLE = r.data ? r.data.role : ''; } catch (e) { window.MYROLE = ''; }
+  try { const u2 = (await sb.auth.getUser()).data.user; const em = (u2 && u2.email) || ''; const nm = (u2 && u2.user_metadata && (u2.user_metadata.full_name || u2.user_metadata.name)) || em.split('@')[0];
+    const parts = nm.split(/[\s._\-]+/).filter(Boolean); const ini = ((parts[0] || '?')[0] + (parts.length > 1 ? parts[parts.length - 1][0] : (parts[0] || '')[1] || '')).toUpperCase();
+    const RN = {admin: 'Admin', editor: 'Editor', manager: 'Manager', viewer: 'Guest', amia_editor: 'AMIA Project Editor'};
+    const old0 = document.getElementById('whoBtn'); if (old0) old0.remove();
+    const w = document.createElement('div'); w.id = 'whoBtn'; w.className = 'who';
+    w.innerHTML = '<button type="button" class="whoc" aria-haspopup="true" aria-label="Signed in as ' + em + '">' + ini + '</button><div class="whop" hidden><b></b><span></span><i></i></div>';
+    w.querySelector('b').textContent = nm; w.querySelector('span').textContent = em; w.querySelector('i').textContent = RN[window.MYROLE] || 'No access level';
+    const tbn = document.getElementById('themeBtn'); if (tbn) tbn.parentNode.insertBefore(w, tbn);
+    w.querySelector('.whoc').onclick = ev => { ev.stopPropagation(); const p = w.querySelector('.whop'); p.hidden = !p.hidden; };
+    document.addEventListener('click', () => { const p = w.querySelector('.whop'); if (p) p.hidden = true; });
+  } catch (e) {}
   window.NOMONEY = !['admin', 'editor', 'manager'].includes(window.MYROLE || '');   // Guest and AMIA Project Editor: no fines, accidents or hired prices
   if (window.NOMONEY) document.body.classList.add('nomoney');
   window.APPLOG = [];
