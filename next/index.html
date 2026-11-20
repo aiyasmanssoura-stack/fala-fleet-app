@@ -2398,8 +2398,7 @@ let drawLeads = ()=>{};
                  style="color:var(--brand);cursor:pointer">${esc(t.ref)}</a>`
             : esc(t.v)}${window.numTagBtn ? window.numTagBtn(v, t) : ''}</div>${t.wrote
             ? `<div class="sm">written as “${esc(t.wrote)}”</div>` : ''}</div>`).join('')}
-      </div></div>`:''}
-    ${paperHistPanel(v)}`;
+      </div></div>`:''}`;
   }
 
 
@@ -3611,7 +3610,7 @@ let drawLeads = ()=>{};
       const e = (window.APPLOG || []).find(x => x.kind === 'paper' && x.details && x.details.old_paper_id === r.id);
       return e ? `<td class="sm"><b>${esc(homeWho(e.by_email))}</b><br><span class="sm">${esc(homeWhen(e.at))}</span></td>` : '<td class="sm"><span class="dash">—</span></td>';
     };
-    return `<details class="panel histbox"><summary><b>Earlier expiry dates</b> <span class="pill p-ok">${rows.length} on record</span> <span class="note">for record only · tap to open</span></summary>
+    return `<details class="panel histbox" open><summary><b>Earlier expiry dates</b> <span class="pill p-ok">${rows.length} on record</span> <span class="note">for record only · tap to open</span></summary>
       <div class="scroll"><table><thead><tr><th>Paper</th><th class="n">Expired</th><th>Ref</th><th>Note</th>${IS_ADMIN() ? '<th>Renewed by</th>' : ''}${histTh()}</tr></thead>
       <tbody>${rows.map(r => `<tr><td><b>${esc(r.k)}</b></td><td class="n id"><b>${dt(r.v)}</b></td><td class="sm">${esc(r.ref)}</td><td class="sm">${esc(r.note)}</td>${renewedBy(r)}${histTd('paper', r, v.plate)}</tr>`).join('')}</tbody></table></div></details>`;
   }
@@ -3853,12 +3852,12 @@ let drawLeads = ()=>{};
       {k:'ov', t:'Overview', h:overview},
       {k:'pp', t:'Papers', n:ex.length, hot:true, h:block(v, false)},
       {k:'ps', t:'People & sites', h:(who + assign) || none},
-      ...((kids.length || v.trailer || hist.length) ? [{k:'tl', t:'Trailer', h:coupled + pulled + trlHist}] : []),
+      ...((kids.length || v.trailer || hist.length) ? [{k:'tl', t:'Trailer', h:(coupled + pulled) || none}] : []),
       {k:'ty', t:'Tyres', n:nTy, h:tyrePanel(v, false)},
       {k:'sv', t:'Service and maintenance', n:nSv, h:servicePanel(v)},
       {k:'di', t:'Diesel', h:dieselPanel(v) || none},
       ...(window.NOMONEY ? [] : [{k:'fi', t:'Fines', n:tick + acc, h:finesPanel(v) + accidentPanel(v)}]),
-      {k:'hi', t:'History', h:(driverLogPanel(v) + sitesPanel(v)) || none}
+      {k:'hi', t:'History', h:(driverLogPanel(v) + trlHist + sitesPanel(v) + paperHistPanel(v)) || none}
     ];
     const cur = (window.__cardTab && tabs.some(t=>t.k===window.__cardTab.k && window.__cardTab.p===v.plate)) ? window.__cardTab.k : 'ov';
 
