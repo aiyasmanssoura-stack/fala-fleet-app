@@ -268,11 +268,18 @@ h1{margin:0}
   background:rgba(255,255,255,.18)}
 .band .srch kbd{background:rgba(255,255,255,.14);border-color:rgba(255,255,255,.18);
   color:#c3cce8}
+.histbox{padding:8px 14px}
+.histbox>summary{cursor:pointer;list-style:none;display:flex;align-items:center;gap:10px;flex-wrap:wrap;font-size:13px;color:var(--ink2)}
+.histbox>summary::-webkit-details-marker{display:none}
+.histbox>summary::before{content:'\25B8';font-size:11px;color:var(--muted)}
+.histbox[open]>summary::before{content:'\25BE'}
+.histbox table{font-size:12.5px}.histbox .scroll{margin-top:8px}
 .who{position:relative}
 .whoc{width:38px;height:38px;border-radius:50%;border:2px solid rgba(255,255,255,.35);background:#f5c518;color:#14305f;font:700 14px/1 inherit;font-family:inherit;cursor:pointer;display:grid;place-items:center;padding:0}
 .whoc:hover{border-color:#fff}
 .whop{position:absolute;right:0;top:46px;z-index:50;min-width:220px;background:var(--surface);color:var(--ink);border:1px solid var(--rule);border-radius:12px;padding:10px;box-shadow:0 10px 28px rgba(0,0,0,.28);display:flex;flex-direction:column;gap:2px;text-align:left}
 .whop[hidden]{display:none}
+@media(max-width:760px){.whop{right:auto;left:0;max-width:calc(100vw - 24px)}}
 .mast-meta .whop b{font-size:14px;color:var(--ink);font-weight:700;padding:2px 10px 0}
 .mast-meta .whop span{font-size:12px;color:var(--muted);word-break:break-all;padding:0 10px}
 .mast-meta .whop i{font-style:normal;font-size:12px;font-weight:600;color:var(--accent);padding:2px 10px 8px;border-bottom:1px solid var(--rule);margin-bottom:6px}
@@ -2379,19 +2386,18 @@ let drawLeads = ()=>{};
       ${na.length?`<p class="sm" style="margin:11px 0 0">Does not apply:
         ${na.map(d=>esc(d.k)).join(' · ')}.</p>`:''}
     </div>
-    ${paperHistPanel(v)}
     ${tagRows.length?`<div class="panel">
       <div class="ph"><h3>${isKid?'Trailer tags and numbers':'Tags and numbers'}</h3>
         <span class="note">a number on a sticker or a card</span></div>
       <div class="kv" style="border-top:0;padding-top:0;margin-top:0">
-        ${tagRows.map(t=>`<div><div class="lbl">${esc(t.k)}</div>
+        ${(window.numTagRows ? window.numTagRows(v, tagRows) : tagRows).map(t=>`<div><div class="lbl">${esc(t.k)}</div>
           <div class="v mono">${LISTFOR[t.k] && !t.ref
             ? `<a href="#lists/${LISTFOR[t.k]}" style="color:var(--brand);text-decoration:none"
                  title="Open the list">${esc(t.v)}</a>`
             : t.ref
             ? `<a data-f="card" data-plate="${esc(t.ref)}"
                  style="color:var(--brand);cursor:pointer">${esc(t.ref)}</a>`
-            : esc(t.v)}</div>${t.wrote
+            : esc(t.v)}${window.numTagBtn ? window.numTagBtn(v, t) : ''}</div>${t.wrote
             ? `<div class="sm">written as “${esc(t.wrote)}”</div>` : ''}</div>`).join('')}
       </div></div>`:''}`;
   }
@@ -3605,10 +3611,9 @@ let drawLeads = ()=>{};
       const e = (window.APPLOG || []).find(x => x.kind === 'paper' && x.details && x.details.old_paper_id === r.id);
       return e ? `<td class="sm"><b>${esc(homeWho(e.by_email))}</b><br><span class="sm">${esc(homeWhen(e.at))}</span></td>` : '<td class="sm"><span class="dash">—</span></td>';
     };
-    return `<div class="panel"><div class="ph"><h3>Earlier expiry dates</h3><span class="pill p-ok">${rows.length} on record</span>
-      <span class="note">dates that were replaced by a renewal</span></div>
+    return `<details class="panel histbox" open><summary><b>Earlier expiry dates</b> <span class="pill p-ok">${rows.length} on record</span> <span class="note">for record only · tap to open</span></summary>
       <div class="scroll"><table><thead><tr><th>Paper</th><th class="n">Expired</th><th>Ref</th><th>Note</th>${IS_ADMIN() ? '<th>Renewed by</th>' : ''}${histTh()}</tr></thead>
-      <tbody>${rows.map(r => `<tr><td><b>${esc(r.k)}</b></td><td class="n id"><b>${dt(r.v)}</b></td><td class="sm">${esc(r.ref)}</td><td class="sm">${esc(r.note)}</td>${renewedBy(r)}${histTd('paper', r, v.plate)}</tr>`).join('')}</tbody></table></div></div>`;
+      <tbody>${rows.map(r => `<tr><td><b>${esc(r.k)}</b></td><td class="n id"><b>${dt(r.v)}</b></td><td class="sm">${esc(r.ref)}</td><td class="sm">${esc(r.note)}</td>${renewedBy(r)}${histTd('paper', r, v.plate)}</tr>`).join('')}</tbody></table></div></details>`;
   }
   function findLine(kind, id, plate){
     const v = V[plate]; if(!v) return [];
@@ -3848,12 +3853,12 @@ let drawLeads = ()=>{};
       {k:'ov', t:'Overview', h:overview},
       {k:'pp', t:'Papers', n:ex.length, hot:true, h:block(v, false)},
       {k:'ps', t:'People & sites', h:(who + assign) || none},
-      ...((kids.length || v.trailer || hist.length) ? [{k:'tl', t:'Trailer', h:coupled + pulled + trlHist}] : []),
+      ...((kids.length || v.trailer || hist.length) ? [{k:'tl', t:'Trailer', h:(coupled + pulled) || none}] : []),
       {k:'ty', t:'Tyres', n:nTy, h:tyrePanel(v, false)},
       {k:'sv', t:'Service and maintenance', n:nSv, h:servicePanel(v)},
       {k:'di', t:'Diesel', h:dieselPanel(v) || none},
       ...(window.NOMONEY ? [] : [{k:'fi', t:'Fines', n:tick + acc, h:finesPanel(v) + accidentPanel(v)}]),
-      {k:'hi', t:'History', h:(driverLogPanel(v) + sitesPanel(v)) || none}
+      {k:'hi', t:'History', h:(driverLogPanel(v) + trlHist + sitesPanel(v) + paperHistPanel(v)) || none}
     ];
     const cur = (window.__cardTab && tabs.some(t=>t.k===window.__cardTab.k && window.__cardTab.p===v.plate)) ? window.__cardTab.k : 'ov';
 
@@ -6042,7 +6047,10 @@ async function start() {
     w.innerHTML = '<button type="button" class="whoc" aria-haspopup="true" aria-label="Signed in as ' + em + '">' + ini + '</button><div class="whop" hidden><b></b><span></span><i></i></div>';
     w.querySelector('b').textContent = nm; w.querySelector('span').textContent = em; w.querySelector('i').textContent = RN[window.MYROLE] || 'No access level';
     const tbn = document.getElementById('themeBtn'); if (tbn) tbn.parentNode.insertBefore(w, tbn); const pp = w.querySelector('.whop'); ['themeBtn', 'signOutBtn'].forEach(id => { const b = document.getElementById(id); if (b) pp.appendChild(b); });
-    w.querySelector('.whoc').onclick = ev => { ev.stopPropagation(); const p = w.querySelector('.whop'); p.hidden = !p.hidden; };
+    w.querySelector('.whoc').onclick = ev => { ev.stopPropagation(); const p = w.querySelector('.whop'); p.hidden = !p.hidden;
+      if(!p.hidden){ p.style.left = ''; p.style.right = ''; const r = p.getBoundingClientRect(), vw = document.documentElement.clientWidth;
+        if(r.left < 8){ p.style.right = 'auto'; p.style.left = (8 - w.getBoundingClientRect().left) + 'px'; }
+        else if(r.right > vw - 8){ p.style.left = 'auto'; p.style.right = '0'; } } };
     document.addEventListener('click', ev => { const p = w.querySelector('.whop'); if (p && !p.contains(ev.target)) p.hidden = true; });
   } catch (e) {}
   window.NOMONEY = !['admin', 'editor', 'manager'].includes(window.MYROLE || '');   // Guest and AMIA Project Editor: no fines, accidents or hired prices
