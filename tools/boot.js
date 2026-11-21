@@ -40,7 +40,10 @@ async function start() {
     w.innerHTML = '<button type="button" class="whoc" aria-haspopup="true" aria-label="Signed in as ' + em + '">' + ini + '</button><div class="whop" hidden><b></b><span></span><i></i></div>';
     w.querySelector('b').textContent = nm; w.querySelector('span').textContent = em; w.querySelector('i').textContent = RN[window.MYROLE] || 'No access level';
     const tbn = document.getElementById('themeBtn'); if (tbn) tbn.parentNode.insertBefore(w, tbn); const pp = w.querySelector('.whop'); ['themeBtn', 'signOutBtn'].forEach(id => { const b = document.getElementById(id); if (b) pp.appendChild(b); });
-    w.querySelector('.whoc').onclick = ev => { ev.stopPropagation(); const p = w.querySelector('.whop'); p.hidden = !p.hidden; };
+    w.querySelector('.whoc').onclick = ev => { ev.stopPropagation(); const p = w.querySelector('.whop'); p.hidden = !p.hidden;
+      if(!p.hidden){ p.style.left = ''; p.style.right = ''; const r = p.getBoundingClientRect(), vw = document.documentElement.clientWidth;
+        if(r.left < 8){ p.style.right = 'auto'; p.style.left = (8 - w.getBoundingClientRect().left) + 'px'; }
+        else if(r.right > vw - 8){ p.style.left = 'auto'; p.style.right = '0'; } } };
     document.addEventListener('click', ev => { const p = w.querySelector('.whop'); if (p && !p.contains(ev.target)) p.hidden = true; });
   } catch (e) {}
   window.NOMONEY = !['admin', 'editor', 'manager'].includes(window.MYROLE || '');   // Guest and AMIA Project Editor: no fines, accidents or hired prices
